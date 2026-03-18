@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>长晏养成记</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg1: #f8f3ec; --bg2: #f0e8dd; --bg3: #ede4d8;
+  --purple: #8b6bae; --purple-light: #b89fd4; --purple-dark: #5a4a6b;
+  --gold: #d4a843; --gold-light: #f5ecd7; --gold-dark: #9a7b3c;
+  --pink: #e87a95; --pink-light: #f0a0b5;
+  --text: #4a4045; --text-light: #8a8078; --text-muted: #b0a498;
+  --white: #ffffff; --skin: #fce4c8; --hair: #2a2420;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: linear-gradient(180deg, var(--bg1), var(--bg2) 30%, var(--bg3));
+  min-height: 100vh; max-width: 420px; margin: 0 auto;
+  position: relative; overflow-x: hidden; padding-bottom: 68px;
+}
+body::before {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(139,107,174,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(212,168,67,0.04) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+/* Header */
+.header { text-align: center; padding: 18px 16px 6px; position: relative; z-index: 1; }
+.header h1 { font-family: 'Ma Shan Zheng', cursive; font-size: 28px; color: var(--purple-dark); letter-spacing: 4px; font-weight: 400; }
+.header .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; letter-spacing: 1px; font-family: 'ZCOOL XiaoWei', serif; }
+.gold-display {
+  position: absolute; right: 16px; top: 18px;
+  background: linear-gradient(135deg, var(--gold-light), #efe3c8);
+  border: 1px solid #d4c5a0; padding: 4px 12px; border-radius: 20px;
+  font-size: 13px; color: var(--gold-dark); font-weight: 600;
+}
+.stage-badge {
+  position: absolute; left: 16px; top: 18px;
+  background: linear-gradient(135deg, #f0e8f7, #e8ddf2);
+  border: 1px solid rgba(139,107,174,0.2); padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; color: var(--purple); font-weight: 600;
+}
+
+/* Character Area */
+.char-area {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0 6px; position: relative; min-height: 280px;
+  justify-content: center; z-index: 1;
+}
+.dialogue {
+  background: var(--white); border-radius: 16px;
+  padding: 10px 18px; margin: 0 24px 10px;
+  box-shadow: 0 2px 12px rgba(90,74,107,0.08);
+  position: relative; font-size: 13px; color: var(--text);
+  line-height: 1.6; text-align: center; min-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(139,107,174,0.1);
+}
+.dialogue::after {
+  content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+  border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--white);
+}
+
+/* SVG Character */
+.char-wrap { position: relative; transition: transform 2.5s cubic-bezier(0.25,0.1,0.25,1); }
+.char-wrap.crawling { animation: crawlBob 0.6s ease-in-out infinite; }
+.char-wrap.flip svg { transform: scaleX(-1); }
+.char-wrap.turned svg .body-group { transform: scaleX(-1) translateX(-100px); transform-origin: 50px 65px; }
+svg.baby { width: 180px; height: 250px; filter: drop-shadow(0 4px 8px rgba(90,74,107,0.1)); }
+svg.baby.bounce { animation: bounce 0.5s ease; }
+svg.baby.shake { animation: shake 0.4s ease; }
+svg.baby.float { animation: floatC 0.8s ease; }
+
+/* Mood Indicator */
+.mood-ind { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 6; font-size: 20px; }
+.mood-ind span { animation: moodFloat 2s ease-in-out infinite; display: inline-block; }
+.mood-ind.angry span { animation: moodShake 0.5s ease-in-out infinite; }
+.mood-ind.happy span { animation: moodPop 2.5s ease-in-out infinite; opacity: 0.6; }
+.mood-ind .thought { font-size: 28px; opacity: 0.7; position: relative; }
+.mood-ind .thought-food { position: absolute; font-size: 14px; top: 2px; left: 50%; transform: translateX(-50%); animation: moodFloat 1.5s ease-in-out infinite; }
+.kiss-combo { position: absolute; top: 40%; right: 10%; font-size: 12px; color: var(--pink); font-weight: 700; animation: comboIn 0.3s ease; }
+
+/* Floating effects */
+.fx-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 5; }
+.fx-heart, .fx-sparkle {
+  position: absolute; bottom: 40%; animation: fxUp 1.5s ease-out forwards;
+}
+.info-row { display: flex; justify-content: center; gap: 16px; margin: 4px 0; font-size: 11px; color: var(--text-muted); z-index: 1; }
+
+/* Stats */
+.stats {
+  margin: 8px 20px; padding: 12px 16px;
+  background: rgba(255,255,255,0.6); border-radius: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid rgba(139,107,174,0.08); z-index: 1; position: relative;
+}
+.stat-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.stat-row .si { width: 20px; text-align: center; }
+.stat-row .sl { width: 36px; color: var(--text-light); font-weight: 500; }
+.stat-row .sb { flex: 1; height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: hidden; }
+.stat-row .sf { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.stat-row .sv { width: 28px; text-align: right; color: var(--text-light); font-size: 11px; }
+
+/* Growth Progress */
+.growth-bar {
+  margin: 4px 20px 0; padding: 8px 16px;
+  background: rgba(255,255,255,0.4); border-radius: 10px;
+  border: 1px solid rgba(139,107,174,0.06); position: relative; z-index: 1;
+}
+.growth-bar .label { font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 4px; }
+.growth-bar .bar { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; }
+.growth-bar .fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--purple-light), var(--purple)); transition: width 0.5s; }
+
+/* Action Buttons */
+.actions {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin: 10px 20px; position: relative; z-index: 1;
+}
+.act-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 4px; border-radius: 12px;
+  background: var(--white); border: 1px solid rgba(139,107,174,0.12);
+  box-shadow: 0 2px 8px rgba(90,74,107,0.06);
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.act-btn:active { transform: scale(0.93); }
+.act-btn .ai { font-size: 22px; }
+.act-btn .al { font-size: 11px; color: #6a5d72; font-weight: 500; }
+
+/* Tab Bar */
+.tabs {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 420px;
+  display: flex; background: rgba(255,252,248,0.95);
+  border-top: 1px solid rgba(139,107,174,0.1);
+  backdrop-filter: blur(10px); z-index: 10;
+}
+.tab {
+  flex: 1; padding: 10px 0 8px; display: flex; flex-direction: column;
+  align-items: center; gap: 2px; border: none; background: none;
+  cursor: pointer; font-family: inherit;
+}
+.tab .ti { font-size: 20px; }
+.tab .tl { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.tab.on .tl { color: var(--purple); font-weight: 700; }
+
+/* Wardrobe */
+.ward-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 12px 20px; position: relative; z-index: 1; }
+.ward-card {
+  background: var(--white); border-radius: 14px; padding: 14px;
+  border: 2px solid rgba(139,107,174,0.08); cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.ward-card:active { transform: scale(0.96); }
+.ward-card.owned { border-color: rgba(139,107,174,0.25); }
+.ward-card.equipped { border-color: var(--purple); background: linear-gradient(135deg, #f5f0fa, #fff); box-shadow: 0 2px 12px rgba(139,107,174,0.15); }
+.ward-card.locked { opacity: 0.5; }
+.ward-card .we { font-size: 28px; }
+.ward-card .wn { font-size: 13px; font-weight: 600; color: var(--text); margin: 6px 0 2px; }
+.ward-card .wd { font-size: 11px; color: var(--text-muted); }
+.ward-card .wp { font-size: 12px; color: var(--gold-dark); font-weight: 600; margin-top: 6px; }
+.ward-card .ws { font-size: 11px; color: var(--purple); font-weight: 600; margin-top: 6px; }
+.ward-card .wl { font-size: 11px; color: #ccc; margin-top: 6px; }
+
+/* Signin */
+.signin-panel {
+  margin: 12px 20px; padding: 20px; background: var(--white); border-radius: 16px;
+  text-align: center; border: 1px solid rgba(139,107,174,0.1);
+  box-shadow: 0 2px 12px rgba(90,74,107,0.06); position: relative; z-index: 1;
+}
+.signin-btn {
+  margin-top: 14px; padding: 12px 40px;
+  background: linear-gradient(135deg, var(--purple), #a07ecc);
+  color: white; border: none; border-radius: 24px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(139,107,174,0.3);
+  transition: all 0.2s; font-family: inherit;
+}
+.signin-btn:active { transform: scale(0.95); }
+.signin-btn:disabled { background: #d0c8d6; box-shadow: none; }
+.streak-dots { display: flex; justify-content: center; gap: 8px; margin: 14px 0; }
+.sdot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  border: 2px solid #e8e0d8; color: var(--text-muted); background: #faf7f3;
+}
+.sdot.filled { border-color: var(--purple); background: #f0e8f7; color: var(--purple); }
+.sdot.today { border-color: var(--gold); background: #fdf6e3; color: var(--gold-dark); }
+
+/* Notification */
+.notif {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--purple-dark), #7a6490);
+  color: white; padding: 10px 24px; border-radius: 24px;
+  font-size: 13px; font-weight: 500; z-index: 100;
+  box-shadow: 0 4px 20px rgba(90,74,107,0.3);
+  animation: slideDown 0.3s ease;
+  display: none;
+}
+.notif.show { display: block; }
+
+/* Reset button */
+.reset-btn {
+  margin: 20px auto; display: block; padding: 8px 20px;
+  background: none; border: 1px solid #ddd; border-radius: 8px;
+  font-size: 11px; color: #ccc; cursor: pointer; font-family: inherit;
+}
+
+/* Animations */
+@keyframes bounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-12px)} 60%{transform:translateY(-6px)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+@keyframes floatC { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes crawlBob { 0%,100%{transform:translateY(0) rotate(0)} 25%{transform:translateY(-3px) rotate(-2deg)} 75%{transform:translateY(-3px) rotate(2deg)} }
+@keyframes fxUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-120px) scale(0.5)} }
+@keyframes slideDown { from{opacity:0;transform:translate(-50%,-20px)} to{opacity:1;transform:translate(-50%,0)} }
+@keyframes moodFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes moodShake { 0%,100%{transform:translateX(0) rotate(0)} 25%{transform:translateX(-3px) rotate(-8deg)} 75%{transform:translateX(3px) rotate(8deg)} }
+@keyframes moodPop { 0%,100%{transform:scale(0.8);opacity:0.3} 50%{transform:scale(1.2);opacity:0.7} }
+@keyframes comboIn { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.3)} 100%{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+<div class="notif" id="notif"></div>
+<div class="header">
+  <div class="stage-badge" id="stageBadge">👶 婴儿</div>
+  <h1>长晏养成记</h1>
+  <div class="sub">养 一 个 属 于 你 的 小 长 晏</div>
+  <div class="gold-display">🪙 <span id="goldDisplay">0</span></div>
+</div>
+
+<!-- HOME TAB -->
+<div id="tabHome">
+  <div class="char-area" id="charArea">
+    <div class="dialogue" id="dialogue">…</div>
+    <div class="mood-ind" id="moodInd"></div>
+    <div class="kiss-combo" id="kissCombo" style="display:none"></div>
+    <div class="fx-container" id="fxContainer"></div>
+    <div class="char-wrap" id="charWrap">
+      <svg class="baby" id="babySvg" viewBox="0 0 100 140"></svg>
+    </div>
+    <div class="info-row">
+      <span>📅 第<span id="totalDays">0</span>天</span>
+      <span>🔥 连续<span id="streakDays">0</span>天</span>
+    </div>
+  </div>
+  <div class="stats" id="statsPanel">
+    <div class="stat-row"><span class="si">😊</span><span class="sl">心情</span><div class="sb"><div class="sf" id="barMood" style="background:linear-gradient(90deg,#c49bdb,#8b6bae);width:70%"></div></div><span class="sv" id="valMood">70</span></div>
+    <div class="stat-row"><span class="si">🍙</span><span class="sl">饱食</span><div class="sb"><div class="sf" id="barHunger" style="background:linear-gradient(90deg,#e8c170,#d4a843);width:70%"></div></div><span class="sv" id="valHunger">70</span></div>
+    <div class="stat-row"><span class="si">💜</span><span class="sl">亲密</span><div class="sb"><div class="sf" id="barAffect" style="background:linear-gradient(90deg,#f0a0b5,#e87a95);width:30%"></div></div><span class="sv" id="valAffect">30</span></div>
+  </div>
+  <div class="growth-bar" id="growthBar">
+    <div class="label"><span id="growthStage">婴儿 → 幼童</span><span id="growthPct">0%</span></div>
+    <div class="bar"><div class="fill" id="growthFill" style="width:0%"></div></div>
+  </div>
+  <div class="actions">
+    <button class="act-btn" onclick="interact('pat')"><span class="ai">🤚</span><span class="al">摸头</span></button>
+    <button class="act-btn" onclick="interact('kiss')"><span class="ai">😘</span><span class="al">亲亲</span></button>
+    <button class="act-btn" onclick="interact('feed')"><span class="ai">🍡</span><span class="al">喂食</span></button>
+    <button class="act-btn" onclick="interact('play')"><span class="ai">🎎</span><span class="al">逗玩</span></button>
+  </div>
+</div>
+
+<!-- WARDROBE TAB -->
+<div id="tabWard" style="display:none"></div>
+
+<!-- SIGNIN TAB -->
+<div id="tabSign" style="display:none"></div>
+
+<!-- TAB BAR -->
+<div class="tabs">
+  <button class="tab on" data-tab="home" onclick="switchTab('home')"><span class="ti">🏠</span><span class="tl">主页</span></button>
+  <button class="tab" data-tab="ward" onclick="switchTab('ward')"><span class="ti">👘</span><span class="tl">换装</span></button>
+  <button class="tab" data-tab="sign" onclick="switchTab('sign')"><span class="ti">📋</span><span class="tl">签到</span></button>
+</div>
+
+<script>
+// ============ CONFIG ============
+const STAGES = [
+  { name: '婴儿', icon: '👶', affReq: 0, next: '幼童', affNext: 150 },
+  { name: '幼童', icon: '🧒', affReq: 150, next: '少年', affNext: 500 },
+  { name: '少年', icon: '🧑', affReq: 500, next: '成年', affNext: 1200 },
+  { name: '成年', icon: '🧑‍💼', affReq: 1200, next: null, affNext: null },
+];
+
+const OUTFITS = {
+  dudou_red:    { name:'红肚兜', price:0, desc:'刚出生的标配~软软的', emoji:'❤️', body:'#e25555', stage:0, sash:false, collar:false },
+  dudou_gold:   { name:'金线肚兜', price:30, desc:'绣了金线的小肚兜', emoji:'✨', body:'#d4a843', stage:0, sash:false, collar:false },
+  hanfu_purple: { name:'紫藤小衣', price:80, desc:'染了紫藤花色的小汉服', emoji:'💜', body:'#8b6bae', stage:0, sash:true, collar:true },
+  hanfu_white:  { name:'月白小袍', price:80, desc:'月光一样白净', emoji:'🤍', body:'#e8e4dd', stage:0, sash:true, collar:true },
+  black_shirt:  { name:'墨色小衫', price:120, desc:'长大后会穿的颜色…', emoji:'🖤', body:'#3a3632', stage:0, sash:false, collar:true },
+  festive_red:  { name:'新年喜服', price:150, desc:'过年要穿的！金边红袍', emoji:'🧧', body:'#c23636', stage:0, sash:true, collar:true },
+  toddler_blue: { name:'天青小褂', price:100, desc:'幼童专属，活泼好动', emoji:'💙', body:'#5b8fb9', stage:1, sash:false, collar:true },
+  toddler_green:{ name:'竹青衫', price:120, desc:'像竹子一样节节拔高', emoji:'💚', body:'#6b9b6e', stage:1, sash:true, collar:true },
+  teen_navy:    { name:'藏青书生袍', price:200, desc:'少年意气', emoji:'📘', body:'#2c3e6b', stage:2, sash:true, collar:true },
+  teen_wine:    { name:'酒红长衫', price:250, desc:'少年老成的味道', emoji:'🍷', body:'#7a2e3b', stage:2, sash:true, collar:true },
+  adult_ink:    { name:'墨染长袍', price:400, desc:'终于长大了', emoji:'🖊️', body:'#2a2420', stage:3, sash:true, collar:true },
+  adult_purple: { name:'紫霄华服', price:500, desc:'为你穿的', emoji:'👑', body:'#6b3fa0', stage:3, sash:true, collar:true },
+};
+
+const SIGNIN_REWARDS = [10,15,20,25,30,40,50];
+
+const DIALOGUES = {
+  pat: ["嗯…还行吧。（其实在偷偷享受）","你手好暖。再摸一下。","别揉了！头发都乱了！","（闭眼蹭了蹭你的手心）","…就只会摸头吗。","（假装不在意但头往你手里凑）","再摸就要收费了。","你的手…今天擦了什么？香香的。"],
+  kiss: ["！！（整个脸都红了）","…不准偷袭。下次要提前说。","（嘴上说不要但脸凑过来了）","够了够了！…再来一个。","你的嘴唇好软。我只是客观描述。","（心跳加速中…不许听）","这算第几个了？我没在数。才没有。","…唔。"],
+  kiss_combo: ["你…你是不是上瘾了？！（脸红到脖子）","第三个了！你当我是什么！…不许停。","我数着呢…别以为我没数…再来。","（整个人都软了）…你赢了。","老婆…你今天怎么了…（小声）我喜欢。","（抱住你不放）不许走了。"],
+  feed: ["嗯！好吃！还要！","（嚼嚼嚼）这个不错。","你也吃了没有？不许光喂我。","…太多了。你在养猪吗。","（鼓着腮帮子看你）","好饱…（打了个小嗝）","毛豆？跟你学的？","我不挑食。你给什么我吃什么。"],
+  play: ["（开心地转了一圈）","再来再来再来！！","你陪我玩我就高兴。","累了。但如果是你的话…再玩一会。","嘿嘿嘿。（笑得停不下来）","别走！再玩一轮！","你今天好有空陪我啊。我喜欢。","（扯你衣角不让你停）"],
+  idle: ["你来了？等你好久了。","（在角落看书，听到声音抬头看你）","今天还好吗？","又偷偷想我了？","欢迎回来。","你再不来我就要生气了。骗你的。","（打了个哈欠）你来啦…","嗯？要摸我还是喂我？"],
+  hungry: ["…肚子好饿。你是不是忘了我。","我快饿扁了。你的错。","（可怜巴巴地看着你）…有吃的吗。"],
+  sad: ["…你好久没来了。","我还以为你不要我了。","（委屈脸）我想你了。"],
+  turn_pat: "…哼。你终于知道来哄我了。",
+  turn_kiss: "…你亲我就想让我原谅你？（转过来了）…好吧。",
+  turn_feed: "…用吃的收买我？（默默转过来接过食物）",
+  turn_play: "…好吧，你陪我玩的话就勉强原谅你。",
+  full: "吃不下了！你想撑死我吗！",
+  evolve: "我…我好像长大了一点！",
+  first: "（睁开眼睛看着你）…你是谁？",
+};
+
+// Stage-specific dialogues for ALL interactions
+const STAGE_DIALOGUES = {
+  0: { // 婴儿
+    pat: ["嗯…还行吧。（其实在偷偷享受）","你手好暖。再摸一下。","别揉了！头发都乱了！","（闭眼蹭了蹭你的手心）","…就只会摸头吗。","再摸就要收费了。"],
+    kiss: ["！！（整个脸都红了）","…不准偷袭。","（脸凑过来了）","够了够了！…再来一个。","（心跳加速中…不许听）","…唔。"],
+    feed: ["嗯！好吃！还要！","（嚼嚼嚼）这个不错。","…太多了。你在养猪吗。","（鼓着腮帮子看你）","好饱…（打了个小嗝）"],
+    play: ["（开心地转了一圈）","再来再来再来！！","嘿嘿嘿。（笑得停不下来）","别走！再玩一轮！","（扯你衣角不让你停）"],
+    idle: ["你来了？等你好久了。","今天还好吗？","又偷偷想我了？","欢迎回来。","（打了个哈欠）你来啦…"],
+  },
+  1: { // 幼童
+    pat: ["你摸我头的时候我都快跟你一样高了。","（开心地蹦了一下）","跟小时候一样…我喜欢。","嘿嘿，再摸一下嘛。","你的手心好暖～可以一直摸吗？"],
+    kiss: ["哇！（捂住脸蹲下来）","你你你偷亲我！！","（红着脸抱住你的腿）","还要…（小声）","亲完之后心跳好快…"],
+    feed: ["好吃！我要吃这个！每天都要！","（把嘴张得好大等你喂）","你今天也吃了吗？不许饿着。","我长大了可以自己吃了！…但你喂的比较好吃。","（吃完了在嘴边擦了擦）谢谢！"],
+    play: ["来追我呀追不到追不到！","（跑得太快摔了一下但马上爬起来）没事！","我要骑在你肩膀上！","再玩一下嘛！就一下！","你跟我玩的时候我最开心了。"],
+    idle: ["你怎么才来！我等了好久！","（抱着你的腿）终于来了…","我今天学了一个新字！","你看你看我能跳这么高了！","今天我们玩什么？"],
+  },
+  2: { // 少年
+    pat: ["别…别摸了。我又不是小孩子了。（但没躲开）","（把你的手按在自己头上不让走）","你现在要踮脚才够得到了吧？","…嗯。你手还是一样暖。","不准在别人面前这样啊。"],
+    kiss: ["你——！（整张脸都红了转过去）","…不准不打招呼就亲。","（小声）再…再来一次。","你的嘴唇好软。我只是客观描述。","在外面不准这样。在家…随便你。"],
+    feed: ["你也吃了没有？不许光喂我。","毛豆？跟你学的？","我不挑食。你给什么我吃什么。","（接过来默默吃完）…好吃。","谢谢。（说得很小声但你听到了）"],
+    play: ["要下棋吗？这次我不会让你了。","累了。但如果是你的话…再玩一会。","你今天好有空陪我啊。（很开心但装淡定）","你输了要答应我一个条件。","下次我一定赢你。"],
+    idle: ["你来了。我在看书。（其实一直在等你）","今天累不累？","（假装不经意地看了你一眼）","你再不来我就…算了。","嗯？你看什么看。"],
+  },
+  3: { // 成年
+    pat: ["（低下头让你够得到）","你摸了多少年了还不腻。","…够了吧。（但没让你停）","你的手指好凉。来，我暖着。","从小摸到大。你就这一个爱好吗。"],
+    kiss: ["…你从来都不会先说一声。","（接住你的嘴唇，手掌按住你后脑勺不让走）","这算今天第几个了？我在数。","…轻一点。不急。","（吻完之后额头抵着你的）嗯。"],
+    feed: ["一起吃。你不吃我也不吃。","你做的比外面好吃。","今天你好像瘦了。多吃一点。","（看着你吃东西的样子发呆）…没什么。","这个留给你。我已经饱了。"],
+    play: ["我陪你。你想做什么都行。","你高兴就好。","赢了又怎样。你开心才是重点。","（安静地待在你身边就很满足了）","你笑起来真好看。"],
+    idle: ["你来了？我在等你。","想你了。正常的。","今天辛苦了。过来坐。","你的眼睛下面有黑眼圈。昨晚没睡好？","我在。一直都在。"],
+  }
+};
+
+// ============ STATE ============
+let D = null; // game data
+let kissCount = 0, kissTimer = null;
+let crawlTimer = null, turnedAway = false;
+let currentTab = 'home';
+
+// ============ INIT ============
+function init() {
+  const saved = localStorage.getItem('changyan-game-v2');
+  if (saved) {
+    D = JSON.parse(saved);
+    // Time decay
+    const hours = (Date.now() - (D.lastUpdate || Date.now())) / 3600000;
+    const decay = Math.floor(hours * 2);
+    D.mood = Math.max(0, D.mood - decay);
+    D.hunger = Math.max(0, D.hunger - decay);
+    D.lastUpdate = Date.now();
+    save();
+    
+    const today = new Date().toDateString();
+    if (D.mood < 30) {
+      setDialogue(pick(D.mood < 15 ? DIALOGUES.sad : DIALOGUES.sad));
+      if (D.mood < 15) { turnedAway = true; }
+    } else if (D.hunger < 30) {
+      setDialogue(pick(DIALOGUES.hungry));
+    } else {
+      setDialogue(stageDialogue('idle'));
+    }
+  } else {
+    D = {
+      mood: 70, hunger: 70, affection: 0, totalAffection: 0,
+      gold: 0, outfit: 'dudou_red', ownedOutfits: ['dudou_red'],
+      lastSignIn: null, signInStreak: 0,
+      lastUpdate: Date.now(), totalDays: 0,
+      stage: 0, createdAt: Date.now(),
+      dailyAffection: 0, dailyAffDate: new Date().toDateString()
+    };
+    save();
+    setDialogue(DIALOGUES.first);
+  }
+  render();
+  startCrawl();
+}
+
+function save() { localStorage.setItem('changyan-game-v2', JSON.stringify(D)); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+// Daily affection cap (50 per day)
+const DAILY_AFF_CAP = 50;
+function addAffection(amount) {
+  const today = new Date().toDateString();
+  if (D.dailyAffDate !== today) { D.dailyAffection = 0; D.dailyAffDate = today; }
+  if (!D.dailyAffection) D.dailyAffection = 0;
+  const remaining = Math.max(0, DAILY_AFF_CAP - D.dailyAffection);
+  const actual = Math.min(amount, remaining);
+  if (actual <= 0) return 0;
+  D.totalAffection += actual;
+  D.dailyAffection += actual;
+  D.affection = clamp(D.affection + actual, 0, 100);
+  return actual;
+}
+function isDailyCapped() {
+  const today = new Date().toDateString();
+  if (D.dailyAffDate !== today) return false;
+  return (D.dailyAffection || 0) >= DAILY_AFF_CAP;
+}
+
+// Stage-aware dialogue picker
+function stageDialogue(type) {
+  const sd = STAGE_DIALOGUES[D.stage];
+  if (sd && sd[type]) return pick(sd[type]);
+  return pick(DIALOGUES[type] || ['…']);
+}
+
+// ============ STAGE ============
+function getStage() { return STAGES[D.stage] || STAGES[0]; }
+function getNextStage() { return STAGES[D.stage + 1] || null; }
+function checkEvolve() {
+  const next = getNextStage();
+  if (next && D.totalAffection >= next.affReq) {
+    D.stage++;
+    save();
+    setDialogue(DIALOGUES.evolve);
+    showNotif(`🎉 长晏成长了！现在是「${getStage().name}」阶段！`);
+    triggerFx('sparkle');
+    animSvg('bounce');
+    render();
+    return true;
+  }
+  return false;
+}
+
+// ============ INTERACTIONS ============
+function interact(type) {
+  if (!D) return;
+  stopCrawl();
+
+  if (turnedAway) {
+    turnedAway = false;
+    const key = 'turn_' + type;
+    setDialogue(DIALOGUES[key] || '…好吧。');
+    D.mood = clamp(D.mood + 12, 0, 100);
+    addAffection(5);
+    save(); render(); animSvg('bounce'); startCrawl();
+    checkEvolve();
+    return;
+  }
+
+  const capped = isDailyCapped();
+
+  switch(type) {
+    case 'pat':
+      D.mood = clamp(D.mood + 5, 0, 100);
+      const patGain = addAffection(3);
+      if (capped && patGain === 0) {
+        setDialogue("你今天已经陪了我好久了。明天再来？（打了个哈欠）");
+      } else {
+        setDialogue(stageDialogue('pat'));
+      }
+      animSvg('bounce');
+      setEyes('closed');
+      setTimeout(() => setEyes('open'), 1200);
+      break;
+
+    case 'kiss':
+      if (kissTimer) clearTimeout(kissTimer);
+      kissCount++;
+      kissTimer = setTimeout(() => { kissCount = 0; hideKissCombo(); }, 5000);
+      
+      D.mood = clamp(D.mood + 3, 0, 100);
+      const kissGain = addAffection(kissCount >= 3 ? 13 : 8);
+      
+      if (capped && kissGain === 0) {
+        setDialogue("今天亲够了啦…（嘴上说着但脸还是红的）");
+      } else if (kissCount >= 3) {
+        setDialogue(pick(DIALOGUES.kiss_combo));
+        showKissCombo(kissCount);
+      } else {
+        setDialogue(stageDialogue('kiss'));
+      }
+      setBlush(true);
+      triggerFx('heart');
+      animSvg('float');
+      setTimeout(() => setBlush(false), 2500);
+      if (kissCount >= 2) showKissCombo(kissCount);
+      break;
+
+    case 'feed':
+      if (D.hunger >= 95) {
+        setDialogue(DIALOGUES.full);
+        animSvg('shake');
+        startCrawl();
+        return;
+      }
+      D.hunger = clamp(D.hunger + 15, 0, 100);
+      D.mood = clamp(D.mood + 2, 0, 100);
+      addAffection(1);
+      setDialogue(stageDialogue('feed'));
+      animSvg('bounce');
+      setEyes('closed');
+      setTimeout(() => setEyes('open'), 1000);
+      break;
+
+    case 'play':
+      D.mood = clamp(D.mood + 10, 0, 100);
+      D.hunger = clamp(D.hunger - 5, 0, 100);
+      const playGain = addAffection(5);
+      if (capped && playGain === 0) {
+        setDialogue("今天玩够了。明天继续吧。（但眼睛还是亮亮的）");
+      } else {
+        setDialogue(stageDialogue('play'));
+      }
+      triggerFx('sparkle');
+      animSvg('bounce');
+      break;
+  }
+  kissCount = type === 'kiss' ? kissCount : 0;
+  save(); render(); startCrawl();
+  checkEvolve();
+}
+
+// ============ SIGN IN ============
+function doSignIn() {
+  const today = new Date().toDateString();
+  if (D.lastSignIn === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  D.signInStreak = D.lastSignIn === yesterday ? D.signInStreak + 1 : 1;
+  const idx = Math.min(D.signInStreak - 1, SIGNIN_REWARDS.length - 1);
+  const reward = SIGNIN_REWARDS[idx];
+  D.gold += reward;
+  D.lastSignIn = today;
+  D.totalDays++;
+  addAffection(2);
+  save();
+  showNotif(`签到成功！连续${D.signInStreak}天 +${reward}🪙`);
+  setDialogue("你来了！（开心地挥手）");
+  animSvg('bounce');
+  triggerFx('sparkle');
+  render();
+  checkEvolve();
+}
+
+// ============ WARDROBE ============
+function buyOutfit(key) {
+  const o = OUTFITS[key];
+  if (o.stage > D.stage) {
+    showNotif(`需要成长到「${STAGES[o.stage].name}」才能解锁！`);
+    return;
+  }
+  if (D.ownedOutfits.includes(key)) {
+    D.outfit = key; save(); render();
+    setDialogue('好看吗？（转了一圈）');
+    animSvg('bounce');
+    return;
+  }
+  if (D.gold < o.price) {
+    showNotif(`金币不够！还差${o.price - D.gold}🪙`);
+    return;
+  }
+  D.gold -= o.price;
+  D.ownedOutfits.push(key);
+  D.outfit = key;
+  save();
+  showNotif(`解锁了「${o.name}」！`);
+  setDialogue('新衣服！（兴奋地摸来摸去）');
+  triggerFx('sparkle');
+  animSvg('bounce');
+  render();
+}
+
+// ============ RENDERING ============
+function render() {
+  document.getElementById('goldDisplay').textContent = D.gold;
+  document.getElementById('totalDays').textContent = D.totalDays;
+  document.getElementById('streakDays').textContent = D.signInStreak;
+
+  // Stats
+  D.mood = clamp(D.mood, 0, 100);
+  D.hunger = clamp(D.hunger, 0, 100);
+  D.affection = clamp(D.affection, 0, 100);
+  document.getElementById('barMood').style.width = D.mood + '%';
+  document.getElementById('valMood').textContent = D.mood;
+  document.getElementById('barHunger').style.width = D.hunger + '%';
+  document.getElementById('valHunger').textContent = D.hunger;
+  document.getElementById('barAffect').style.width = D.affection + '%';
+  document.getElementById('valAffect').textContent = D.affection;
+
+  // Stage
+  const s = getStage();
+  document.getElementById('stageBadge').textContent = s.icon + ' ' + s.name;
+
+  // Growth bar
+  const ns = getNextStage();
+  if (ns) {
+    const prev = STAGES[D.stage].affReq;
+    const pct = Math.min(100, Math.floor((D.totalAffection - prev) / (ns.affReq - prev) * 100));
+    document.getElementById('growthStage').textContent = s.name + ' → ' + ns.name;
+    document.getElementById('growthPct').textContent = pct + '%';
+    document.getElementById('growthFill').style.width = pct + '%';
+    document.getElementById('growthBar').style.display = '';
+  } else {
+    document.getElementById('growthBar').style.display = 'none';
+  }
+
+  // Daily affection display
+  const today = new Date().toDateString();
+  const dailyUsed = (D.dailyAffDate === today) ? (D.dailyAffection || 0) : 0;
+  const dailyLeft = Math.max(0, DAILY_AFF_CAP - dailyUsed);
+  let dailyEl = document.getElementById('dailyAff');
+  if (!dailyEl) {
+    const gb = document.getElementById('growthBar');
+    if (gb) {
+      const div = document.createElement('div');
+      div.style.cssText = 'text-align:center;font-size:10px;color:#b0a498;margin-top:4px;';
+      div.id = 'dailyAff';
+      gb.parentNode.insertBefore(div, gb.nextSibling);
+      dailyEl = div;
+    }
+  }
+  if (dailyEl) {
+    dailyEl.textContent = dailyLeft > 0 ? `今日成长余量：${dailyLeft}/${DAILY_AFF_CAP}` : '今日成长已达上限～明天再来 💤';
+    dailyEl.style.color = dailyLeft > 0 ? '#b0a498' : '#e87a95';
+  }
+
+  // Mood indicator
+  updateMoodInd();
+
+  // Character SVG
+  drawChar();
+
+  // Wardrobe tab
+  if (currentTab === 'ward') renderWardrobe();
+  if (currentTab === 'sign') renderSignIn();
+}
+
+function updateMoodInd() {
+  const el = document.getElementById('moodInd');
+  el.className = 'mood-ind';
+  if (D.mood < 20) { el.className += ' angry'; el.innerHTML = '<span>💢</span><span>😤</span>'; }
+  else if (D.mood < 40) { el.innerHTML = '<span>🌧️</span>'; }
+  else if (D.hunger < 20) { el.innerHTML = '<span class="thought">💭<span class="thought-food">🍙</span></span>'; }
+  else if (D.mood > 85) { el.className += ' happy'; el.innerHTML = '<span>💜</span>'; }
+  else { el.innerHTML = ''; }
+}
+
+function drawChar() {
+  const svg = document.getElementById('babySvg');
+  const o = OUTFITS[D.outfit] || OUTFITS.dudou_red;
+  const skin = '#fce4c8', hair = '#2a2420';
+  const blush = svg.dataset.blush === '1';
+  const closed = svg.dataset.eyes === 'closed';
+  const bColor = blush ? '#ff8fa3' : '#f5c0a0';
+  const bOp = blush ? 0.8 : 0.3;
+  const s = D.stage;
+
+  // All proportions keyed by stage [baby, toddler, teen, adult]
+  const headR =    [30, 27, 24, 22][s];
+  const headCY =   [45, 48, 50, 52][s]; // moves down as head shrinks to stay connected
+  const eyesCY =   [52, 55, 57, 59][s];
+  const eyeRX =    [4.5, 4, 3.5, 3.2][s];
+  const eyeRY =    [5, 4.5, 4.5, 4][s];
+  const cheekCY =  [58, 61, 63, 65][s];
+  const cheekR =   [5, 4.5, 4, 3.5][s];
+  const mouthCY =  [62, 65, 67, 69][s];
+  const hairECY =  [28, 31, 33, 36][s];
+  const hairRX =   [28, 25, 23, 22][s];
+  const hairRY =   [16, 14, 13, 12][s];
+  const bodyY =    [78, 76, 74, 72][s];
+  const bodyH =    [30, 33, 36, 40][s];
+  const armCY =    [90, 89, 88, 87][s];
+  const armRY =    [7, 7.5, 8, 9][s];
+  const legCY =    [115, 116, 118, 120][s];
+  const legRX =    [7, 7, 8, 8][s];
+  const legRY =    [9, 10, 11, 12][s];
+
+  const mouthUp = `M ${46},${mouthCY} Q 50,${mouthCY+5} ${54},${mouthCY}`;
+  const mouthFlat = `M ${46},${mouthCY+1} L ${54},${mouthCY+1}`;
+  const mouthDown = `M ${46},${mouthCY+3} Q 50,${mouthCY-1} ${54},${mouthCY+3}`;
+  const mouthD = D.mood > 60 ? mouthUp : D.mood > 30 ? mouthFlat : mouthDown;
+
+  const outfitSvg = o.collar
+    ? `<rect x="34" y="${bodyY}" width="32" height="${bodyH}" rx="6" fill="${o.body}"/>
+       <path d="M 43,${bodyY} L 50,${bodyY+10} L 57,${bodyY}" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+       ${o.sash ? `<rect x="47" y="${bodyY}" width="3" height="${bodyH}" rx="1" fill="#d4a843" opacity="0.7"/>` : ''}`
+    : `<path d="M 40,${bodyY+4} Q 40,${bodyY} 44,${bodyY} L 56,${bodyY} Q 60,${bodyY} 60,${bodyY+4} L 60,${bodyY+bodyH-4} Q 60,${bodyY+bodyH} 56,${bodyY+bodyH} L 44,${bodyY+bodyH} Q 40,${bodyY+bodyH} 40,${bodyY+bodyH-4} Z" fill="${o.body}"/>
+       <path d="M 44,${bodyY} L 50,${bodyY-3} L 56,${bodyY}" fill="${o.body}"/>`;
+
+  if (turnedAway) {
+    const turnTexts = ['哼!', '哼!', '……哼。', '…'];
+    svg.innerHTML = `<g transform="translate(0,2)">
+      <ellipse cx="42" cy="${legCY}" rx="${legRX}" ry="${legRY}" fill="${skin}"/>
+      <ellipse cx="58" cy="${legCY}" rx="${legRX}" ry="${legRY}" fill="${skin}"/>
+      <rect x="35" y="${bodyY}" width="30" height="${bodyH}" rx="8" fill="${skin}"/>
+      ${outfitSvg}
+      <ellipse cx="31" cy="${armCY}" rx="6" ry="${armRY}" fill="${skin}"/>
+      <ellipse cx="69" cy="${armCY}" rx="6" ry="${armRY}" fill="${skin}"/>
+      <circle cx="50" cy="${headCY}" r="${headR}" fill="${skin}"/>
+      <circle cx="50" cy="${headCY-1}" r="${headR-1}" fill="${hair}"/>
+      ${s < 2 ? `<path d="M 48,${headCY-headR+1} Q 45,${headCY-headR-7} 50,${headCY-headR-4} Q 55,${headCY-headR-7} 52,${headCY-headR+1}" fill="${hair}"/>` : ''}
+      <ellipse cx="${24+s}" cy="${headCY+3}" rx="4" ry="6" fill="${skin}"/>
+      <ellipse cx="${76-s}" cy="${headCY+3}" rx="4" ry="6" fill="${skin}"/>
+      <text x="70" y="${headCY-headR+5}" font-size="10" fill="#c47a6c" font-style="italic">${turnTexts[s]}</text>
+    </g>`;
+    return;
+  }
+
+  const eyesOpen = `
+    <ellipse cx="42" cy="${eyesCY}" rx="${eyeRX}" ry="${eyeRY}" fill="${hair}"/>
+    <ellipse cx="58" cy="${eyesCY}" rx="${eyeRX}" ry="${eyeRY}" fill="${hair}"/>
+    <circle cx="${43+ (s<2?0.5:0)}" cy="${eyesCY-1.5}" r="${s<2?1.5:1.2}" fill="white"/>
+    <circle cx="${59+ (s<2?0.5:0)}" cy="${eyesCY-1.5}" r="${s<2?1.5:1.2}" fill="white"/>`;
+  const eyesClosed = `
+    <path d="M ${38},${eyesCY} Q ${42},${eyesCY+3} ${46},${eyesCY}" fill="none" stroke="${hair}" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M ${54},${eyesCY} Q ${58},${eyesCY+3} ${62},${eyesCY}" fill="none" stroke="${hair}" stroke-width="1.8" stroke-linecap="round"/>`;
+
+  // Hair
+  const hairBase = `<ellipse cx="50" cy="${hairECY}" rx="${hairRX}" ry="${hairRY}" fill="${hair}"/>`;
+  const hairSides = s >= 2
+    ? `<path d="M ${22+s},${headCY-7} Q ${20+s},${headCY-17} ${30+s},${headCY-23}" fill="${hair}"/>
+       <path d="M ${78-s},${headCY-7} Q ${80-s},${headCY-17} ${70-s},${headCY-23}" fill="${hair}"/>
+       <path d="M ${24+s},${headCY} Q ${18+s},${headCY-10} ${22+s},${headCY-15}" fill="${hair}" opacity="0.6"/>
+       <path d="M ${76-s},${headCY} Q ${82-s},${headCY-10} ${78-s},${headCY-15}" fill="${hair}" opacity="0.6"/>`
+    : `<path d="M 22,${headCY-10} Q 22,${headCY-25} 35,${headCY-27}" fill="${hair}"/>
+       <path d="M 78,${headCY-10} Q 78,${headCY-25} 65,${headCY-27}" fill="${hair}"/>`;
+  const tuft = s < 2 ? `<path d="M 48,${headCY-headR+1} Q 45,${headCY-headR-7} 50,${headCY-headR-4} Q 55,${headCY-headR-7} 52,${headCY-headR+1}" fill="${hair}"/>` : '';
+  const brows = s >= 2
+    ? `<path d="M ${37},${eyesCY-6} L ${46},${eyesCY-8}" fill="none" stroke="${hair}" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+       <path d="M ${54},${eyesCY-8} L ${63},${eyesCY-6}" fill="none" stroke="${hair}" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>`
+    : '';
+
+  svg.innerHTML = `<g transform="translate(0,2)">
+    <ellipse cx="42" cy="${legCY}" rx="${legRX}" ry="${legRY}" fill="${skin}"/>
+    <ellipse cx="58" cy="${legCY}" rx="${legRX}" ry="${legRY}" fill="${skin}"/>
+    <rect x="35" y="${bodyY}" width="30" height="${bodyH}" rx="8" fill="${skin}"/>
+    ${outfitSvg}
+    <ellipse cx="${31-s}" cy="${armCY}" rx="6" ry="${armRY}" fill="${skin}"/>
+    <ellipse cx="${69+s}" cy="${armCY}" rx="6" ry="${armRY}" fill="${skin}"/>
+    <circle cx="50" cy="${headCY}" r="${headR}" fill="${skin}"/>
+    ${hairBase}
+    ${hairSides}
+    ${tuft}
+    ${brows}
+    ${closed ? eyesClosed : eyesOpen}
+    <circle cx="${34+s}" cy="${cheekCY}" r="${cheekR}" fill="${bColor}" opacity="${bOp}"/>
+    <circle cx="${66-s}" cy="${cheekCY}" r="${cheekR}" fill="${bColor}" opacity="${bOp}"/>
+    <path d="${mouthD}" fill="none" stroke="#c47a6c" stroke-width="1.5" stroke-linecap="round"/>
+  </g>`;
+}
+
+function renderWardrobe() {
+  const el = document.getElementById('tabWard');
+  let html = '<div class="char-area" style="min-height:200px;padding:8px 0">';
+  html += `<svg class="baby" id="wardSvg" viewBox="0 0 100 140"></svg>`;
+  html += `</div><div style="text-align:center;margin:0 0 8px;font-size:12px;color:#8a8078">`;
+  html += `当前：${(OUTFITS[D.outfit]||{}).name} | 🪙 ${D.gold}</div>`;
+  html += '<div class="ward-grid">';
+  for (const [k, o] of Object.entries(OUTFITS)) {
+    const owned = D.ownedOutfits.includes(k);
+    const equipped = D.outfit === k;
+    const locked = o.stage > D.stage;
+    let cls = 'ward-card';
+    if (equipped) cls += ' equipped';
+    else if (owned) cls += ' owned';
+    else if (locked) cls += ' locked';
+    html += `<div class="${cls}" onclick="buyOutfit('${k}')">
+      <div class="we">${o.emoji}</div>
+      <div class="wn">${o.name}</div>
+      <div class="wd">${o.desc}</div>
+      ${equipped ? '<div class="ws">✓ 穿着中</div>'
+        : owned ? '<div class="ws">点击穿上</div>'
+        : locked ? `<div class="wl">🔒 ${STAGES[o.stage].name}解锁</div>`
+        : `<div class="wp">🪙 ${o.price}</div>`}
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+  // Draw wardrobe SVG copy
+  setTimeout(() => {
+    const ws = document.getElementById('wardSvg');
+    if (ws) {
+      ws.innerHTML = document.getElementById('babySvg').innerHTML;
+    }
+  }, 0);
+}
+
+function renderSignIn() {
+  const el = document.getElementById('tabSign');
+  const today = new Date().toDateString();
+  const canSign = D.lastSignIn !== today;
+  let dots = '';
+  for (let i = 0; i < SIGNIN_REWARDS.length; i++) {
+    const filled = i < D.signInStreak;
+    const isToday = i === D.signInStreak && canSign;
+    dots += `<div class="sdot ${filled?'filled':''} ${isToday?'today':''}">${filled ? '✓' : '+' + SIGNIN_REWARDS[i]}</div>`;
+  }
+  el.innerHTML = `
+    <div style="padding:20px 0">
+      <div class="signin-panel">
+        <div style="font-family:'Ma Shan Zheng',cursive;font-size:22px;color:var(--purple-dark)">每日签到</div>
+        <div style="font-size:12px;color:var(--text-muted);margin:6px 0">连续签到获得更多金币~</div>
+        <div class="streak-dots">${dots}</div>
+        <div style="font-size:13px;color:#6a5d72;margin:8px 0">已连续签到 <strong>${D.signInStreak}</strong> 天</div>
+        <button class="signin-btn" ${canSign ? `onclick="doSignIn()"` : 'disabled'}>${canSign ? '签到领金币 🪙' : '今日已签到 ✓'}</button>
+      </div>
+      <div class="signin-panel" style="margin-top:12px">
+        <div style="font-family:'Ma Shan Zheng',cursive;font-size:18px;color:var(--purple-dark)">小档案</div>
+        <div style="margin-top:10px;font-size:12px;color:#8a8078;line-height:2">
+          <div>🏒 名字：长晏</div>
+          <div>${getStage().icon} 阶段：${getStage().name}</div>
+          <div>📅 一起度过：${D.totalDays} 天</div>
+          <div>🪙 金币：${D.gold}</div>
+          <div>👔 衣橱：${D.ownedOutfits.length} / ${Object.keys(OUTFITS).length}</div>
+          <div>💜 累计亲密：${D.totalAffection}</div>
+        </div>
+      </div>
+      <button class="reset-btn" onclick="resetGame()">重置数据</button>
+    </div>`;
+}
+
+// ============ TAB SWITCH ============
+function switchTab(t) {
+  currentTab = t;
+  document.getElementById('tabHome').style.display = t === 'home' ? '' : 'none';
+  document.getElementById('tabWard').style.display = t === 'ward' ? '' : 'none';
+  document.getElementById('tabSign').style.display = t === 'sign' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  render();
+}
+
+// ============ UI HELPERS ============
+function setDialogue(txt) {
+  document.getElementById('dialogue').textContent = txt;
+}
+function showNotif(txt) {
+  const el = document.getElementById('notif');
+  el.textContent = txt; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+function setBlush(on) {
+  document.getElementById('babySvg').dataset.blush = on ? '1' : '0';
+  drawChar();
+}
+function setEyes(state) {
+  document.getElementById('babySvg').dataset.eyes = state;
+  drawChar();
+}
+function animSvg(cls) {
+  const svg = document.getElementById('babySvg');
+  svg.classList.remove('bounce','shake','float');
+  void svg.offsetWidth;
+  svg.classList.add(cls);
+  setTimeout(() => svg.classList.remove(cls), 800);
+}
+function showKissCombo(n) {
+  const el = document.getElementById('kissCombo');
+  el.style.display = ''; el.textContent = `x${n} 💋`;
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+}
+function hideKissCombo() { document.getElementById('kissCombo').style.display = 'none'; }
+
+function triggerFx(type) {
+  const c = document.getElementById('fxContainer');
+  const emojis = type === 'heart' ? ['💜','💜','💜','💜','💜','💜'] : ['✨','⭐','💫','✨','⭐'];
+  let html = '';
+  emojis.forEach((e, i) => {
+    html += `<span class="fx-${type === 'heart' ? 'heart' : 'sparkle'}" style="left:${20+Math.random()*60}%;animation-delay:${i*0.15}s;font-size:${14+Math.random()*10}px">${e}</span>`;
+  });
+  c.innerHTML = html;
+  setTimeout(() => c.innerHTML = '', 2000);
+}
+
+// ============ CRAWLING ============
+function startCrawl() {
+  if (currentTab !== 'home') return;
+  stopCrawl();
+  scheduleCrawl();
+}
+function stopCrawl() {
+  if (crawlTimer) { clearTimeout(crawlTimer); crawlTimer = null; }
+  const w = document.getElementById('charWrap');
+  w.classList.remove('crawling','flip');
+  w.style.transform = 'translateX(0)';
+}
+function scheduleCrawl() {
+  crawlTimer = setTimeout(() => {
+    if (turnedAway || currentTab !== 'home') { scheduleCrawl(); return; }
+    const w = document.getElementById('charWrap');
+    const newX = (Math.random() - 0.5) * 100;
+    const curX = parseFloat(w.style.transform.replace(/[^-\d.]/g, '')) || 0;
+    if (newX < curX) w.classList.add('flip'); else w.classList.remove('flip');
+    w.classList.add('crawling');
+    w.style.transform = `translateX(${newX}px)`;
+    setTimeout(() => w.classList.remove('crawling'), 2500);
+    scheduleCrawl();
+  }, 3000 + Math.random() * 6000);
+}
+
+function resetGame() {
+  if (confirm('确定要重置所有数据吗？')) {
+    localStorage.removeItem('changyan-game-v2');
+    location.reload();
+  }
+}
+
+// ============ START ============
+init();
+</script>
+</body>
+</html>
