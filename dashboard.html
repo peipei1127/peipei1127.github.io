@@ -183,14 +183,20 @@ async function loadMem(){
   }catch(e){document.getElementById('mem-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 async function loadStats(){
   try{const ms=await fb('memories','status=eq.active&select=category');
-  const logs=await fb('activity_log','select=event_type');
+  const logs=await fb('activity_log','order=created_at.desc&limit=200');
   const mc={permanent:0,important:0,recent:0};ms.forEach(m=>mc[m.category]=(mc[m.category]||0)+1);
-  const lc={};logs.forEach(l=>lc[l.event_type]=(lc[l.event_type]||0)+1);
+  const todayLogs=logs.filter(l=>isToday(l.created_at));
+  const yesterdayDate=new Date(Date.now()+8*3600000-86400000).toISOString().slice(0,10);
+  const yesterLogs=logs.filter(l=>fd(l.created_at)===yesterdayDate);
+  const tc={};todayLogs.forEach(l=>tc[l.event_type]=(tc[l.event_type]||0)+1);
+  const yc={};yesterLogs.forEach(l=>yc[l.event_type]=(yc[l.event_type]||0)+1);
   document.getElementById('stat-detail').innerHTML=`
-    <div style="margin-bottom:12px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">📊 今日聊天</div>
-    <div style="font-size:11px;color:#8a9aaa">活动记录: ${logs.length}条</div></div>
-    <div style="margin-bottom:12px"><div style="color:#64b5f6;font-size:12px;margin-bottom:6px">🔧 活动类型</div>
-    <div style="font-size:11px;color:#8a9aaa">${Object.entries(lc).map(([k,v])=>`${TL[k]||k}: ${v}`).join(' · ')}</div></div>
+    <div style="margin-bottom:14px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">📅 今天</div>
+    <div style="font-size:11px;color:#8a9aaa">活动: ${todayLogs.length}条</div>
+    <div style="font-size:10px;color:#6a7a8a;margin-top:3px">${Object.entries(tc).map(([k,v])=>`${TL[k]||k}:${v}`).join(' · ')||'暂无'}</div></div>
+    <div style="margin-bottom:14px"><div style="color:#64b5f6;font-size:12px;margin-bottom:6px">📆 昨天</div>
+    <div style="font-size:11px;color:#8a9aaa">活动: ${yesterLogs.length}条</div>
+    <div style="font-size:10px;color:#6a7a8a;margin-top:3px">${Object.entries(yc).map(([k,v])=>`${TL[k]||k}:${v}`).join(' · ')||'暂无'}</div></div>
     <div><div style="color:#81c784;font-size:12px;margin-bottom:6px">🧠 记忆总览</div>
     <div style="font-size:11px;color:#8a9aaa">总计: ${ms.length} · 🔒${mc.permanent||0} · ⭐${mc.important||0} · 💭${mc.recent||0}</div></div>`;
   }catch(e){}}
