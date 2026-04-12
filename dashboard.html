@@ -168,11 +168,18 @@ async function loadAct(){
   document.getElementById('last-refresh').textContent=ft(new Date().toISOString());
   }catch(e){document.getElementById('act-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 async function loadMem(){
-  try{const ms=await fb('memories','status=eq.active&order=importance.desc,weight.desc&limit=50');
+  try{const ms=await fb('memories','status=eq.active&order=importance.desc,weight.desc&limit=100');
   document.getElementById('mem-load').style.display='none';
-  document.getElementById('mem-list').innerHTML=ms.length?ms.map(rm).join(''):'<div class="empty"><div class="em">🧠</div>还没有记忆</div>';
+  const perm=ms.filter(m=>m.category==='permanent');
+  const imp=ms.filter(m=>m.category==='important');
+  const rec=ms.filter(m=>m.category==='recent');
+  let h='';
+  if(perm.length)h+=`<div class="section-title">🔒 永久记忆 (${perm.length})</div>${perm.map(rm).join('')}`;
+  if(imp.length)h+=`<div class="section-title">⭐ 重要记忆 (${imp.length})</div>${imp.map(rm).join('')}`;
+  if(rec.length)h+=`<div class="section-title">💭 近期记忆 (${rec.length})</div>${rec.map(rm).join('')}`;
+  document.getElementById('mem-list').innerHTML=h||'<div class="empty"><div class="em">🧠</div>还没有记忆</div>';
   document.getElementById('s-mem').textContent=ms.length;
-  document.getElementById('s-perm').textContent=ms.filter(m=>m.category==='permanent').length;
+  document.getElementById('s-perm').textContent=perm.length;
   }catch(e){document.getElementById('mem-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 async function loadStats(){
   try{const ms=await fb('memories','status=eq.active&select=category');
@@ -180,10 +187,12 @@ async function loadStats(){
   const mc={permanent:0,important:0,recent:0};ms.forEach(m=>mc[m.category]=(mc[m.category]||0)+1);
   const lc={};logs.forEach(l=>lc[l.event_type]=(lc[l.event_type]||0)+1);
   document.getElementById('stat-detail').innerHTML=`
-    <div style="margin-bottom:12px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">记忆分布</div>
-    <div style="font-size:11px;color:#8a9aaa">🔒 永久: ${mc.permanent||0} · ⭐ 重要: ${mc.important||0} · 💭 近期: ${mc.recent||0}</div></div>
-    <div><div style="color:#64b5f6;font-size:12px;margin-bottom:6px">活动类型</div>
-    <div style="font-size:11px;color:#8a9aaa">${Object.entries(lc).map(([k,v])=>`${TL[k]||k}: ${v}`).join(' · ')}</div></div>`;
+    <div style="margin-bottom:12px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">📊 今日聊天</div>
+    <div style="font-size:11px;color:#8a9aaa">活动记录: ${logs.length}条</div></div>
+    <div style="margin-bottom:12px"><div style="color:#64b5f6;font-size:12px;margin-bottom:6px">🔧 活动类型</div>
+    <div style="font-size:11px;color:#8a9aaa">${Object.entries(lc).map(([k,v])=>`${TL[k]||k}: ${v}`).join(' · ')}</div></div>
+    <div><div style="color:#81c784;font-size:12px;margin-bottom:6px">🧠 记忆总览</div>
+    <div style="font-size:11px;color:#8a9aaa">总计: ${ms.length} · 🔒${mc.permanent||0} · ⭐${mc.important||0} · 💭${mc.recent||0}</div></div>`;
   }catch(e){}}
 function sw(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
 ['act','mem','ctrl','stat'].forEach(x=>document.getElementById('p-'+x).classList.add('hidden'));
