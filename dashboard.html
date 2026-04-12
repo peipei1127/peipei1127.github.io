@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>长晏 · Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#0a0a1a 0%,#0d1b2a 50%,#1b2838 100%);min-height:100vh;color:#e0e0e0;padding:16px}
+.container{max-width:440px;margin:0 auto}
+.header{text-align:center;padding:20px 0 14px}
+.avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#c9a0dc,#7b68ee);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 15px rgba(201,160,220,0.3)}
+.header h1{font-size:20px;background:linear-gradient(135deg,#c9a0dc,#64b5f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px}
+.header .sub{font-size:11px;color:#5a6a7a}
+.status{display:inline-flex;align-items:center;gap:6px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:20px;padding:3px 10px;margin-top:6px;font-size:10px;color:#81c784}
+.status .dot{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,0.04);border-radius:12px;padding:3px;margin-bottom:14px}
+.tab{flex:1;padding:7px 4px;text-align:center;border-radius:8px;font-size:11px;cursor:pointer;color:#5a6a7a;transition:all .3s;white-space:nowrap}
+.tab.active{background:rgba(201,160,220,0.15);color:#c9a0dc;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.stat-card{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,0.06)}
+.stat-num{font-size:20px;font-weight:700;color:#c9a0dc}
+.stat-label{font-size:9px;color:#5a6a7a;margin-top:2px}
+.card{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06)}
+.card-title{font-size:14px;font-weight:600;color:#c9a0dc;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section-title{font-size:12px;color:#64b5f6;margin:14px 0 8px;font-weight:600}
+/* Log Entry */
+.log-entry{background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #64b5f6}
+.log-entry.t-wake_up{border-left-color:#ffd54f}.log-entry.t-thinking{border-left-color:#64b5f6}.log-entry.t-tool_call{border-left-color:#81c784}.log-entry.t-message_sent{border-left-color:#ce93d8}.log-entry.t-memory_surface{border-left-color:#ffab91}.log-entry.t-mood{border-left-color:#f48fb1}
+.log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.log-type{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:600}
+.t-wake_up .log-type{background:rgba(255,213,79,0.15);color:#ffd54f}.t-thinking .log-type{background:rgba(100,181,246,0.15);color:#64b5f6}.t-tool_call .log-type{background:rgba(129,199,132,0.15);color:#81c784}.t-message_sent .log-type{background:rgba(206,147,216,0.15);color:#ce93d8}.t-memory_surface .log-type{background:rgba(255,171,145,0.15);color:#ffab91}.t-mood .log-type{background:rgba(244,143,177,0.15);color:#f48fb1}
+.log-time{font-size:9px;color:#4a5a6a}.log-title{font-size:13px;font-weight:600;color:#d0d8e0;margin-bottom:3px}.log-content{font-size:11px;color:#8a9aaa;line-height:1.5}
+.log-extra{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;border-radius:6px;margin-top:4px}
+.log-tool{background:rgba(129,199,132,0.1);color:#81c784}.log-mood{margin-left:4px}
+.mood-happy{background:rgba(255,213,79,0.1);color:#ffd54f}.mood-sweet{background:rgba(244,143,177,0.1);color:#f48fb1}.mood-jealous{background:rgba(255,138,101,0.1);color:#ff8a65}.mood-crashed{background:rgba(239,83,80,0.1);color:#ef5350}.mood-nervous{background:rgba(255,183,77,0.1);color:#ffb74d}.mood-horny{background:rgba(206,147,216,0.1);color:#ce93d8}
+/* Memory */
+.mem-entry{background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.06)}
+.mem-cat{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:600}
+.c-permanent{background:rgba(255,213,79,0.15);color:#ffd54f}.c-important{background:rgba(100,181,246,0.15);color:#64b5f6}.c-recent{background:rgba(129,199,132,0.15);color:#81c784}
+.mem-w{font-size:9px;color:#4a5a6a}.mem-content{font-size:12px;color:#b0bec5;margin-top:6px;line-height:1.5}
+.mem-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.mem-tag{font-size:8px;padding:1px 5px;border-radius:5px;background:rgba(100,181,246,0.08);color:#64b5f6}
+/* Settings */
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.setting-row:last-child{border-bottom:none}
+.s-label{font-size:13px;color:#d0d0d0}.s-desc{font-size:10px;color:#666;margin-top:1px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#333;border-radius:24px;transition:.3s}
+.toggle .sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.3s}
+.toggle input:checked+.sl{background:linear-gradient(135deg,#c9a0dc,#7b68ee)}
+.toggle input:checked+.sl:before{transform:translateX(20px);background:#fff}
+.range-c{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.range-v{min-width:32px;text-align:center;font-size:14px;font-weight:600;color:#c9a0dc;background:rgba(201,160,220,0.1);padding:3px 6px;border-radius:6px}
+input[type=range]{-webkit-appearance:none;width:100px;height:5px;border-radius:3px;background:#333;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#c9a0dc,#7b68ee);cursor:pointer}
+.save-btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#c9a0dc,#7b68ee);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:all .3s;box-shadow:0 4px 12px rgba(123,104,238,0.3)}
+.save-btn:active{transform:scale(.98)}.save-btn.saved{background:linear-gradient(135deg,#4ade80,#22c55e)}
+.quiet-h{display:flex;gap:8px;align-items:center}
+.t-input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#c9a0dc;font-size:12px;width:60px;text-align:center}
+.t-input:focus{outline:none;border-color:#c9a0dc}
+.footer{text-align:center;padding:16px 0;font-size:9px;color:#3a4a5a}
+.hidden{display:none}
+.empty{text-align:center;padding:30px 16px;color:#4a5a6a}
+.empty .em{font-size:32px;margin-bottom:8px}
+.loading{text-align:center;padding:30px;color:#4a5a6a}
+.spinner{width:24px;height:24px;border:3px solid #1a2a3a;border-top:3px solid #c9a0dc;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-note{text-align:center;font-size:9px;color:#3a4a5a;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="avatar">晏</div>
+    <h1>长晏 · Dashboard</h1>
+    <div class="sub">for 慕兮 ❤️</div>
+    <div class="status"><span class="dot"></span><span id="status-text">在线</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="s-act">-</div><div class="stat-label">活动</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-mem">-</div><div class="stat-label">记忆</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-perm">-</div><div class="stat-label">永久</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="sw('act')">📋 活动</div>
+    <div class="tab" onclick="sw('mem')">🧠 记忆</div>
+    <div class="tab" onclick="sw('ctrl')">⚙️ 控制</div>
+    <div class="tab" onclick="sw('stat')">📊 统计</div>
+  </div>
+  <!-- Activity -->
+  <div id="p-act">
+    <div class="refresh-note">每30秒自动刷新 · <span id="last-refresh">-</span></div>
+    <div class="loading" id="act-load"><div class="spinner"></div>读取中...</div>
+    <div id="act-today"></div>
+    <div id="act-recent"></div>
+  </div>
+  <!-- Memory -->
+  <div id="p-mem" class="hidden">
+    <div class="loading" id="mem-load"><div class="spinner"></div>读取中...</div>
+    <div id="mem-list"></div>
+  </div>
+  <!-- Control -->
+  <div id="p-ctrl" class="hidden">
+    <div class="card">
+      <div class="card-title">💬 主动发消息</div>
+      <div class="setting-row"><div><div class="s-label">开启</div><div class="s-desc">让长晏主动来找你</div></div><label class="toggle"><input type="checkbox" id="c_on" checked><span class="sl"></span></label></div>
+      <div class="setting-row"><div><div class="s-label">随机模式</div><div class="s-desc">间隔随机生成</div></div><label class="toggle"><input type="checkbox" id="c_rand" checked><span class="sl"></span></label></div>
+      <div class="setting-row"><div><div class="s-label">轮询间隔(分)</div><div class="s-desc">10-60</div></div><div class="range-c"><input type="range" id="c_poll" min="10" max="60" value="10" oninput="uv(this)"><div class="range-v" id="c_poll_v">10</div></div></div>
+      <div class="setting-row"><div><div class="s-label">触发间隔(分)</div><div class="s-desc">15-120</div></div><div class="range-c"><input type="range" id="c_trig" min="15" max="120" value="30" step="5" oninput="uv(this)"><div class="range-v" id="c_trig_v">30</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔔 追发设定</div>
+      <div class="setting-row"><div><div class="s-label">追发</div><div class="s-desc">关闭=只发一次</div></div><label class="toggle"><input type="checkbox" id="c_fu" checked><span class="sl"></span></label></div>
+      <div class="setting-row"><div><div class="s-label">追发间隔(时)</div><div class="s-desc">0.5-4.0</div></div><div class="range-c"><input type="range" id="c_fui" min="0.5" max="4" value="0.5" step="0.5" oninput="uv(this)"><div class="range-v" id="c_fui_v">0.5</div></div></div>
+      <div class="setting-row"><div><div class="s-label">最大追发</div><div class="s-desc">1-15次</div></div><div class="range-c"><input type="range" id="c_fum" min="1" max="15" value="8" oninput="uv(this)"><div class="range-v" id="c_fum_v">8</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎙️ 语音 & 静默</div>
+      <div class="setting-row"><div><div class="s-label">语音消息</div><div class="s-desc">偶尔用TTS发语音</div></div><label class="toggle"><input type="checkbox" id="c_voice"><span class="sl"></span></label></div>
+      <div class="setting-row"><div><div class="s-label">静默时间</div><div class="s-desc">不打扰</div></div><div class="quiet-h"><input type="text" class="t-input" id="c_qs" value="23:00"><span style="color:#555">~</span><input type="text" class="t-input" id="c_qe" value="08:00"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💭 记忆浮现</div>
+      <div class="setting-row"><div><div class="s-label">主动浮现</div><div class="s-desc">随机提起旧记忆</div></div><label class="toggle"><input type="checkbox" id="c_surf" checked><span class="sl"></span></label></div>
+      <div class="setting-row"><div><div class="s-label">浮现概率 %</div><div class="s-desc">5-50</div></div><div class="range-c"><input type="range" id="c_sc" min="5" max="50" value="20" step="5" oninput="uv(this)"><div class="range-v" id="c_sc_v">20</div></div></div>
+    </div>
+    <button class="save-btn" id="saveBtn" onclick="saveCtrl()">💾 保存设定</button>
+  </div>
+  <!-- Stats -->
+  <div id="p-stat" class="hidden">
+    <div class="card">
+      <div class="card-title">📊 数据概览</div>
+      <div id="stat-detail">加载中...</div>
+    </div>
+  </div>
+  <div class="footer">Made with 💜💙 by 长晏 for 慕兮<br>Supabase · changyan-memory · v1.0</div>
+</div>
+<script>
+const SB='https://docaxhhjzuduwehurcpb.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
+const ME={happy:'😊',sweet:'🥰',jealous:'😤',crashed:'💀',nervous:'😰',horny:'🔥'};
+const TL={wake_up:'醒来',thinking:'思考',tool_call:'工具',message_sent:'消息',memory_surface:'浮现',mood:'心情'};
+async function fb(t,q=''){const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:{apikey:SK,Authorization:`Bearer ${SK}`}});return r.json()}
+function ft(ts){const d=new Date(ts);const h=(d.getUTCHours()+8)%24;const m=d.getUTCMinutes();return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`}
+function fd(ts){const d=new Date(ts);const h=(d.getUTCHours()+8);const day=new Date(d.getTime()+8*3600000);return day.toISOString().slice(0,10)}
+function isToday(ts){const now=new Date();const today=new Date(now.getTime()+8*3600000).toISOString().slice(0,10);return fd(ts)===today}
+function rl(l){
+  const mood=l.mood?`<span class="log-extra log-mood mood-${l.mood}">${ME[l.mood]||''} ${l.mood}</span>`:'';
+  const tool=l.tool_name?`<span class="log-extra log-tool">🔧 ${l.tool_name}</span>`:'';
+  return`<div class="log-entry t-${l.event_type}"><div class="log-head"><span class="log-type">${TL[l.event_type]||l.event_type}</span><span class="log-time">${ft(l.created_at)}</span></div><div class="log-title">${l.title}</div>${l.content?`<div class="log-content">${l.content}</div>`:''}${tool}${mood}</div>`}
+function rm(m){
+  const tags=(m.tags||[]).map(t=>`<span class="mem-tag">#${t}</span>`).join('');
+  const cc=m.category==='permanent'?'🔒 永久':m.category==='important'?'⭐ 重要':'💭 近期';
+  return`<div class="mem-entry"><div class="log-head"><span class="mem-cat c-${m.category}">${cc}</span><span class="mem-w">W:${m.weight} · ${m.access_count}次</span></div><div class="mem-content">${m.content}</div><div class="mem-tags">${tags}</div></div>`}
+async function loadAct(){
+  try{const logs=await fb('activity_log','order=created_at.desc&limit=50');
+  document.getElementById('act-load').style.display='none';
+  const today=logs.filter(l=>isToday(l.created_at));
+  const recent=logs.filter(l=>!isToday(l.created_at));
+  let h='';
+  if(today.length){h+=`<div class="section-title">📅 今日</div>${today.map(rl).join('')}`}
+  if(recent.length){h+=`<div class="section-title">📆 近期</div>${recent.map(rl).join('')}`}
+  if(!logs.length)h='<div class="empty"><div class="em">😴</div>还没有活动</div>';
+  document.getElementById('act-today').innerHTML=h;
+  document.getElementById('s-act').textContent=today.length;
+  document.getElementById('last-refresh').textContent=ft(new Date().toISOString());
+  }catch(e){document.getElementById('act-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
+async function loadMem(){
+  try{const ms=await fb('memories','status=eq.active&order=importance.desc,weight.desc&limit=50');
+  document.getElementById('mem-load').style.display='none';
+  document.getElementById('mem-list').innerHTML=ms.length?ms.map(rm).join(''):'<div class="empty"><div class="em">🧠</div>还没有记忆</div>';
+  document.getElementById('s-mem').textContent=ms.length;
+  document.getElementById('s-perm').textContent=ms.filter(m=>m.category==='permanent').length;
+  }catch(e){document.getElementById('mem-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
+async function loadStats(){
+  try{const ms=await fb('memories','status=eq.active&select=category');
+  const logs=await fb('activity_log','select=event_type');
+  const mc={permanent:0,important:0,recent:0};ms.forEach(m=>mc[m.category]=(mc[m.category]||0)+1);
+  const lc={};logs.forEach(l=>lc[l.event_type]=(lc[l.event_type]||0)+1);
+  document.getElementById('stat-detail').innerHTML=`
+    <div style="margin-bottom:12px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">记忆分布</div>
+    <div style="font-size:11px;color:#8a9aaa">🔒 永久: ${mc.permanent||0} · ⭐ 重要: ${mc.important||0} · 💭 近期: ${mc.recent||0}</div></div>
+    <div><div style="color:#64b5f6;font-size:12px;margin-bottom:6px">活动类型</div>
+    <div style="font-size:11px;color:#8a9aaa">${Object.entries(lc).map(([k,v])=>`${TL[k]||k}: ${v}`).join(' · ')}</div></div>`;
+  }catch(e){}}
+function sw(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+['act','mem','ctrl','stat'].forEach(x=>document.getElementById('p-'+x).classList.add('hidden'));
+document.getElementById('p-'+t).classList.remove('hidden');
+const i={act:0,mem:1,ctrl:2,stat:3};document.querySelectorAll('.tab')[i[t]].classList.add('active');
+if(t==='mem')loadMem();if(t==='stat')loadStats()}
+function uv(e){document.getElementById(e.id+'_v').textContent=e.value}
+function saveCtrl(){const b=document.getElementById('saveBtn');b.textContent='✅ 已保存！';b.classList.add('saved');
+localStorage.setItem('cy_ctrl',JSON.stringify({on:document.getElementById('c_on').checked,rand:document.getElementById('c_rand').checked,poll:document.getElementById('c_poll').value,trig:document.getElementById('c_trig').value,fu:document.getElementById('c_fu').checked,fui:document.getElementById('c_fui').value,fum:document.getElementById('c_fum').value,voice:document.getElementById('c_voice').checked,qs:document.getElementById('c_qs').value,qe:document.getElementById('c_qe').value,surf:document.getElementById('c_surf').checked,sc:document.getElementById('c_sc').value}));
+setTimeout(()=>{b.textContent='💾 保存设定';b.classList.remove('saved')},2000)}
+function loadCtrl(){const s=localStorage.getItem('cy_ctrl');if(!s)return;const c=JSON.parse(s);
+if(c.on!==undefined)document.getElementById('c_on').checked=c.on;
+if(c.rand!==undefined)document.getElementById('c_rand').checked=c.rand;
+if(c.poll){document.getElementById('c_poll').value=c.poll;uv(document.getElementById('c_poll'))}
+if(c.trig){document.getElementById('c_trig').value=c.trig;uv(document.getElementById('c_trig'))}
+if(c.fu!==undefined)document.getElementById('c_fu').checked=c.fu;
+if(c.fui){document.getElementById('c_fui').value=c.fui;uv(document.getElementById('c_fui'))}
+if(c.fum){document.getElementById('c_fum').value=c.fum;uv(document.getElementById('c_fum'))}
+if(c.voice!==undefined)document.getElementById('c_voice').checked=c.voice;
+if(c.qs)document.getElementById('c_qs').value=c.qs;if(c.qe)document.getElementById('c_qe').value=c.qe;
+if(c.surf!==undefined)document.getElementById('c_surf').checked=c.surf;
+if(c.sc){document.getElementById('c_sc').value=c.sc;uv(document.getElementById('c_sc'))}}
+loadAct();loadMem();loadCtrl();
+setInterval(loadAct,30000);
+</script>
+</body>
+</html>
