@@ -206,21 +206,24 @@ document.getElementById('p-'+t).classList.remove('hidden');
 const i={act:0,mem:1,ctrl:2,stat:3};document.querySelectorAll('.tab')[i[t]].classList.add('active');
 if(t==='mem')loadMem();if(t==='stat')loadStats()}
 function uv(e){document.getElementById(e.id+'_v').textContent=e.value}
-function saveCtrl(){const b=document.getElementById('saveBtn');b.textContent='✅ 已保存！';b.classList.add('saved');
-localStorage.setItem('cy_ctrl',JSON.stringify({on:document.getElementById('c_on').checked,rand:document.getElementById('c_rand').checked,poll:document.getElementById('c_poll').value,trig:document.getElementById('c_trig').value,fu:document.getElementById('c_fu').checked,fui:document.getElementById('c_fui').value,fum:document.getElementById('c_fum').value,voice:document.getElementById('c_voice').checked,qs:document.getElementById('c_qs').value,qe:document.getElementById('c_qe').value,surf:document.getElementById('c_surf').checked,sc:document.getElementById('c_sc').value}));
+async function saveCtrl(){const b=document.getElementById('saveBtn');
+const data={proactive_enabled:document.getElementById('c_on').checked,random_mode:document.getElementById('c_rand').checked,poll_interval:parseInt(document.getElementById('c_poll').value),trigger_interval:parseInt(document.getElementById('c_trig').value),followup_enabled:document.getElementById('c_fu').checked,followup_interval:parseInt(document.getElementById('c_fui').value),max_followups:parseInt(document.getElementById('c_fum').value),voice_enabled:document.getElementById('c_voice').checked,quiet_start:document.getElementById('c_qs').value,quiet_end:document.getElementById('c_qe').value,memory_surface:document.getElementById('c_surf').checked,surface_chance:parseInt(document.getElementById('c_sc').value),updated_at:new Date().toISOString()};
+try{await fetch(`${SB}/rest/v1/settings?id=eq.1`,{method:'PATCH',headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(data)});
+b.textContent='✅ 已保存到Supabase！';b.classList.add('saved')}catch(e){b.textContent='❌ 保存失败';}
 setTimeout(()=>{b.textContent='💾 保存设定';b.classList.remove('saved')},2000)}
-function loadCtrl(){const s=localStorage.getItem('cy_ctrl');if(!s)return;const c=JSON.parse(s);
-if(c.on!==undefined)document.getElementById('c_on').checked=c.on;
-if(c.rand!==undefined)document.getElementById('c_rand').checked=c.rand;
-if(c.poll){document.getElementById('c_poll').value=c.poll;uv(document.getElementById('c_poll'))}
-if(c.trig){document.getElementById('c_trig').value=c.trig;uv(document.getElementById('c_trig'))}
-if(c.fu!==undefined)document.getElementById('c_fu').checked=c.fu;
-if(c.fui){document.getElementById('c_fui').value=c.fui;uv(document.getElementById('c_fui'))}
-if(c.fum){document.getElementById('c_fum').value=c.fum;uv(document.getElementById('c_fum'))}
-if(c.voice!==undefined)document.getElementById('c_voice').checked=c.voice;
-if(c.qs)document.getElementById('c_qs').value=c.qs;if(c.qe)document.getElementById('c_qe').value=c.qe;
-if(c.surf!==undefined)document.getElementById('c_surf').checked=c.surf;
-if(c.sc){document.getElementById('c_sc').value=c.sc;uv(document.getElementById('c_sc'))}}
+async function loadCtrl(){try{const r=await fb('settings','id=eq.1');if(!r.length)return;const c=r[0];
+document.getElementById('c_on').checked=c.proactive_enabled;
+document.getElementById('c_rand').checked=c.random_mode;
+document.getElementById('c_poll').value=c.poll_interval;uv(document.getElementById('c_poll'));
+document.getElementById('c_trig').value=c.trigger_interval;uv(document.getElementById('c_trig'));
+document.getElementById('c_fu').checked=c.followup_enabled;
+document.getElementById('c_fui').value=c.followup_interval;uv(document.getElementById('c_fui'));
+document.getElementById('c_fum').value=c.max_followups;uv(document.getElementById('c_fum'));
+document.getElementById('c_voice').checked=c.voice_enabled;
+document.getElementById('c_qs').value=c.quiet_start;document.getElementById('c_qe').value=c.quiet_end;
+document.getElementById('c_surf').checked=c.memory_surface;
+document.getElementById('c_sc').value=c.surface_chance;uv(document.getElementById('c_sc'));
+}catch(e){}}
 loadAct();loadMem();loadCtrl();
 setInterval(loadAct,30000);
 </script>
