@@ -148,7 +148,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="card">
       <div class="card-title">🔔 追发设定</div>
       <div class="setting-row"><div><div class="s-label">追发</div><div class="s-desc">关闭=只发一次</div></div><label class="toggle"><input type="checkbox" id="c_fu" checked><span class="sl"></span></label></div>
-      <div class="setting-row"><div><div class="s-label">追发间隔(分)</div><div class="s-desc">10-30</div></div><div class="range-c"><input type="range" id="c_fui" min="10" max="30" value="10" step="10" oninput="uv(this)"><div class="range-v" id="c_fui_v">10</div></div></div>
       <div class="setting-row"><div><div class="s-label">最大追发</div><div class="s-desc">1-15次</div></div><div class="range-c"><input type="range" id="c_fum" min="1" max="15" value="8" oninput="uv(this)"><div class="range-v" id="c_fum_v">8</div></div></div>
     </div>
     <div class="card">
@@ -286,7 +285,7 @@ async function loadDiary(){
   }catch(e){document.getElementById('diary-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 function uv(e){document.getElementById(e.id+'_v').textContent=e.value}
 async function saveCtrl(){const b=document.getElementById('saveBtn');
-const data={proactive_enabled:document.getElementById('c_on').checked,random_mode:document.getElementById('c_rand').checked,poll_interval:parseInt(document.getElementById('c_poll').value),trigger_interval:parseInt(document.getElementById('c_trig').value),followup_enabled:document.getElementById('c_fu').checked,followup_interval:parseInt(document.getElementById('c_fui').value),max_followups:parseInt(document.getElementById('c_fum').value),voice_enabled:document.getElementById('c_voice').checked,quiet_start:document.getElementById('c_qs').value,quiet_end:document.getElementById('c_qe').value,memory_surface:document.getElementById('c_surf').checked,surface_chance:parseInt(document.getElementById('c_sc').value),updated_at:new Date().toISOString()};
+const data={proactive_enabled:document.getElementById('c_on').checked,random_mode:document.getElementById('c_rand').checked,poll_interval:parseInt(document.getElementById('c_poll').value),trigger_interval:parseInt(document.getElementById('c_trig').value),followup_enabled:document.getElementById('c_fu').checked,max_followups:parseInt(document.getElementById('c_fum').value),voice_enabled:document.getElementById('c_voice').checked,quiet_start:document.getElementById('c_qs').value,quiet_end:document.getElementById('c_qe').value,memory_surface:document.getElementById('c_surf').checked,surface_chance:parseInt(document.getElementById('c_sc').value),updated_at:new Date().toISOString()};
 try{await fetch(`${SB}/rest/v1/settings?id=eq.1`,{method:'PATCH',headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(data)});
 b.textContent='✅ 已保存到Supabase！';b.classList.add('saved')}catch(e){b.textContent='❌ 保存失败';}
 setTimeout(()=>{b.textContent='💾 保存设定';b.classList.remove('saved')},2000)}
@@ -296,7 +295,6 @@ document.getElementById('c_rand').checked=c.random_mode;
 document.getElementById('c_poll').value=c.poll_interval;uv(document.getElementById('c_poll'));
 document.getElementById('c_trig').value=c.trigger_interval;uv(document.getElementById('c_trig'));
 document.getElementById('c_fu').checked=c.followup_enabled;
-document.getElementById('c_fui').value=c.followup_interval;uv(document.getElementById('c_fui'));
 document.getElementById('c_fum').value=c.max_followups;uv(document.getElementById('c_fum'));
 document.getElementById('c_voice').checked=c.voice_enabled;
 document.getElementById('c_qs').value=c.quiet_start;document.getElementById('c_qe').value=c.quiet_end;
