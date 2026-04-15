@@ -191,8 +191,7 @@ function rl(l){
   return`<div class="log-entry t-${l.event_type}"><div class="log-head"><span class="log-type">${TL[l.event_type]||l.event_type}</span><span class="log-time">${ft(l.created_at)}</span></div><div class="log-title">${l.title}</div>${l.content?`<div class="log-content">${l.content}</div>`:''}${tool}${mood}</div>`}
 function rm(m){
   const tags=(m.tags||[]).map(t=>`<span class="mem-tag">#${t}</span>`).join('');
-  const cc=m.category==='permanent'?'🔒 永久':m.category==='important'?'⭐ 重要':'💭 近期';
-  return`<div class="mem-entry"><div class="log-head"><span class="mem-cat c-${m.category}">${cc}</span><span class="mem-w">W:${m.weight} · ${m.access_count}次</span></div><div class="mem-content">${m.content}</div><div class="mem-tags">${tags}</div></div>`}
+  return`<div class="mem-entry"><div class="log-head"><span class="mem-w">W:${m.weight} · ${m.access_count}次</span></div><div class="mem-content">${m.content}</div><div class="mem-tags">${tags}</div></div>`}
 async function loadAct(){
   try{const logs=await fb('activity_log','event_type=neq.diary&order=created_at.desc&limit=50');
   document.getElementById('act-load').style.display='none';
