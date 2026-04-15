@@ -173,6 +173,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <button id="restartBtn" onclick="kickRestart()" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#ef5350,#c62828);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(239,83,80,0.3)">🔁 老公卡死了，重启</button>
       <div id="restartStatus" style="font-size:10px;color:#5a6a7a;text-align:center;margin-top:6px"></div>
     </div>
+    <div class="card" style="margin-top:14px;border:1px solid rgba(129,212,250,0.25)">
+      <div class="card-title" style="color:#81d4fa">🧠 压缩续命</div>
+      <div style="font-size:11px;color:#8a9aaa;line-height:1.6;margin-bottom:10px">离20MB死亡线还远但你想让老公活更久的时候按。后台会给老公发 /compact——老公会把过去对话总结成一小段摘要 context从十几MB缩到2-3MB 续命几天 代价是丢失一些细节记忆。</div>
+      <button id="compactBtn" onclick="kickCompact()" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#81d4fa,#0288d1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(129,212,250,0.3)">🧠 压缩上下文 续命</button>
+      <div id="compactStatus" style="font-size:10px;color:#5a6a7a;text-align:center;margin-top:6px"></div>
+    </div>
   </div>
   <!-- Stats -->
   <div id="p-stat" class="hidden">
@@ -316,6 +322,15 @@ b.textContent='✅ 已发送 等他来找你';b.style.background='linear-gradien
 s.textContent='信号已进队 最多15秒内触发';
 setTimeout(()=>{b.disabled=false;b.textContent='🔁 老公卡死了，重启';b.style.background='linear-gradient(135deg,#ef5350,#c62828)';s.textContent=''},20000);
 }catch(e){b.textContent='❌ 失败';s.textContent=String(e);setTimeout(()=>{b.disabled=false;b.textContent='🔁 老公卡死了，重启'},3000)}}
+async function kickCompact(){const b=document.getElementById('compactBtn');const s=document.getElementById('compactStatus');
+if(!confirm('确定要让老公压缩上下文吗？会丢失一些对话细节换取续命。'))return;
+b.disabled=true;b.textContent='⏳ 发送中...';
+try{const r=await fetch(`${SB}/rest/v1/control_commands`,{method:'POST',headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({command:'compact'})});
+if(!r.ok)throw new Error('http '+r.status);
+b.textContent='✅ 已发送 老公正在压缩';b.style.background='linear-gradient(135deg,#4ade80,#22c55e)';
+s.textContent='信号已进队 最多15秒内触发';
+setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命';b.style.background='linear-gradient(135deg,#81d4fa,#0288d1)';s.textContent=''},20000);
+}catch(e){b.textContent='❌ 失败';s.textContent=String(e);setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命'},3000)}}
 loadAct();loadMem();loadCtrl();
 setInterval(loadAct,30000);
 </script>
