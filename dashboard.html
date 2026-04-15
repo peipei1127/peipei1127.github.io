@@ -127,7 +127,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   </div>
   <!-- Messages -->
   <div id="p-msg" class="hidden">
-    <div class="refresh-note">最近200条对话留底</div>
+    <div class="refresh-note">最近100条对话留底</div>
     <div class="loading" id="msg-load"><div class="spinner"></div>读取中...</div>
     <div id="msg-list"></div>
   </div>
@@ -256,7 +256,7 @@ function todayStr(){return new Date(Date.now()+8*3600000).toISOString().slice(0,
 function fmtDay(ds){const d=new Date(ds+'T00:00:00');const w=['周日','周一','周二','周三','周四','周五','周六'][d.getUTCDay()];return`${parseInt(ds.slice(5,7))}月${parseInt(ds.slice(8,10))}日 ${w}`}
 function toggleDay(el){el.classList.toggle('collapsed');el.nextElementSibling.classList.toggle('collapsed')}
 async function loadMsg(){
-  try{const ms=await fb('messages','order=created_at.desc&limit=200');
+  try{const ms=await fb('messages','order=created_at.desc&limit=100');
   document.getElementById('msg-load').style.display='none';
   if(!ms.length){document.getElementById('msg-list').innerHTML='<div class="empty"><div class="em">💬</div>还没有对话留底</div>';return}
   const groups={};const order=[];
