@@ -274,7 +274,7 @@ async function loadAll(){
     }
     if(phone){
       const ev = phone.event || "";
-      const map = {claude_open:"正靠在长晏这儿",claude_close:"刚离开长晏",telegram_open:"在找长晏",telegram_close:"合上了 Telegram",xhs_open:"在摸鱼",xhs_close:"摸完鱼了"};
+      const map = {claude_open:"正靠在长晏这儿",claude_close:"刚离开长晏",telegram_open:"在找长晏",telegram_close:"暂时走开了",xhs_open:"在摸鱼",xhs_close:"摸完鱼了"};
       const pretty = map[ev] || ev.replace(/_/g," ");
       document.getElementById("phone").innerHTML = "<em>" + pretty + "</em> · " + timeAgo(phone.created_at);
     }
