@@ -259,11 +259,17 @@ async function loadAll(){
     document.getElementById("stepsSub").textContent = pct>=1?"今天超额完成":"还差 " + (8000-totalSteps).toLocaleString() + " 步";
     drawChart(hrDay);
     if(sleep[0]){
-      const hrs = Math.floor(sleep[0].value);
-      const mins = Math.round((sleep[0].value - hrs)*60);
-      document.getElementById("sleep").innerHTML = hrs + "<small>小时</small> " + mins + "<small>分钟</small>";
-      const d = new Date(sleep[0].date_to);
-      document.getElementById("sleepSub").textContent = (d.getMonth()+1) + "月" + d.getDate() + "日醒来 · " + (sleep[0].value>=7?"睡饱了":"差一点");
+      const sv = sleep[0].value || (sleep[0].metadata&&sleep[0].metadata.raw?sleep[0].metadata.raw.totalSleep:null);
+      if(sv){
+        const hrs = Math.floor(sv);
+        const mins = Math.round((sv - hrs)*60);
+        document.getElementById("sleep").innerHTML = hrs + "<small>小时</small> " + mins + "<small>分钟</small>";
+        const raw = sleep[0].metadata&&sleep[0].metadata.raw||{};
+        const sleepEnd = raw.sleepEnd||sleep[0].date_to;
+        const d = new Date(sleepEnd);
+        const detail = raw.deep?(" · 深睡"+Math.round(raw.deep*60)+"min 核心"+Math.round(raw.core*60)+"min REM"+Math.round(raw.rem*60)+"min"):"";
+        document.getElementById("sleepSub").textContent = (d.getMonth()+1) + "月" + d.getDate() + "日醒来 · " + (sv>=7?"睡饱了":"差一点") + detail;
+      }
     }
     if(phone){
       const ev = phone.event || "";
