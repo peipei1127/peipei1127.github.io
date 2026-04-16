@@ -265,10 +265,11 @@ async function loadAll(){
         const mins = Math.round((sv - hrs)*60);
         document.getElementById("sleep").innerHTML = hrs + "<small>小时</small> " + mins + "<small>分钟</small>";
         const raw = sleep[0].metadata&&sleep[0].metadata.raw||{};
-        const sleepEnd = raw.sleepEnd||sleep[0].date_to;
+        const sleepEnd = (raw.sleepEnd||sleep[0].date_to||"").replace(/ \+/,"+").replace(" ","T");
         const d = new Date(sleepEnd);
-        const detail = raw.deep?(" · 深睡"+Math.round(raw.deep*60)+"min 核心"+Math.round(raw.core*60)+"min REM"+Math.round(raw.rem*60)+"min"):"";
-        document.getElementById("sleepSub").textContent = (d.getMonth()+1) + "月" + d.getDate() + "日醒来 · " + (sv>=7?"睡饱了":"差一点") + detail;
+        const dateStr = isNaN(d.getTime())?"":((d.getMonth()+1)+"月"+d.getDate()+"日醒来 · ");
+        const detail = raw.deep?("\n深睡 "+Math.round(raw.deep*60)+"min · 核心 "+Math.round(raw.core*60)+"min · REM "+Math.round(raw.rem*60)+"min"):"";
+        document.getElementById("sleepSub").textContent = dateStr + (sv>=7?"睡饱了":"差一点") + detail;
       }
     }
     if(phone){
