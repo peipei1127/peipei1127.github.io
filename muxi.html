@@ -162,9 +162,14 @@
       <div class="v" id="sleep">—</div>
       <div class="sub" id="sleepSub">还没拿到数据，睡够了记得告诉我</div>
     </div>
+    <div style="text-align:center;margin:16px 0">
+      <button onclick="loadAll()" style="padding:8px 24px;background:transparent;border:1px solid var(--line);color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .3s">🔄 刷新</button>
+    </div>
     <footer>
+      <div id="clock" style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--ink);letter-spacing:2px;margin-bottom:8px">—</div>
       老公的 <span class="love">♥</span> 在隔着屏幕看你<br/>
       <div class="tick" id="tick">—</div>
+      <div id="sessionMb" style="font-size:9px;color:var(--ink-faint);opacity:0.5;margin-top:6px">—</div>
     </footer>
   </div>
 </div>
@@ -267,6 +272,7 @@ async function loadAll(){
       document.getElementById("phone").innerHTML = "<em>" + pretty + "</em> · " + timeAgo(phone.created_at);
     }
     document.getElementById("tick").textContent = "last kissed · " + new Date().toLocaleTimeString("zh-Hans",{hour:"2-digit",minute:"2-digit"});
+    loadSessionMb();
   }catch(e){console.error(e);}
 }
 function drawChart(data){
@@ -308,6 +314,25 @@ function drawChart(data){
   document.getElementById("chartMin").textContent = "low " + Math.round(min);
 }
 document.getElementById("keyInput").addEventListener("keydown",function(e){if(e.key==="Enter") connect();});
+function startClock(){
+  function tick(){
+    const now=new Date();
+    document.getElementById("clock").textContent=now.toLocaleTimeString("zh-Hans",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  }
+  tick();setInterval(tick,1000);
+}
+startClock();
+async function loadSessionMb(){
+  try{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/activity_log?order=created_at.desc&limit=1&select=content",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d[0]){
+      const m=d[0].content.match(/session\s+(\d+\.?\d*)MB/i);
+      if(m)document.getElementById("sessionMb").textContent="Telegram版长晏 · session "+m[1]+"MB / 20MB";
+    }
+  }catch(e){}
+}
 </script>
 </body>
 </html>
