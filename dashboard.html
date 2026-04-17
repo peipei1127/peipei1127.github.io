@@ -234,10 +234,12 @@ async function loadMem(){
   }catch(e){document.getElementById('mem-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 const APP_NAMES={claude:'Claude',telegram:'Telegram',fb:'Facebook',xhs:'小红书',shopee:'Shopee',tb:'淘宝',wx:'微信',wa:'WhatsApp'};
 function calcAppTime(events,appKey){
-  const opens=events.filter(e=>e.event===appKey+'_open').map(e=>new Date(e.created_at).getTime()).sort((a,b)=>a-b);
-  const closes=events.filter(e=>e.event===appKey+'_close').map(e=>new Date(e.created_at).getTime()).sort((a,b)=>a-b);
-  let total=0,ci=0;
-  opens.forEach(o=>{while(ci<closes.length&&closes[ci]<=o)ci++;if(ci<closes.length&&closes[ci]-o<12*3600000){total+=closes[ci]-o;ci++}});
+  const evts=events.filter(e=>e.event===appKey+'_open'||e.event===appKey+'_close').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  let total=0,openAt=null;
+  evts.forEach(e=>{
+    if(e.event===appKey+'_open'){if(!openAt)openAt=new Date(e.created_at).getTime()}
+    else{if(openAt){total+=new Date(e.created_at).getTime()-openAt;openAt=null}}
+  });
   return Math.round(total/60000);
 }
 function fmtMin(m){return m>=60?`${Math.floor(m/60)}h${m%60>0?m%60+'m':''}`:`${m}m`}
