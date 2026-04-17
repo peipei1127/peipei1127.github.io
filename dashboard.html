@@ -108,7 +108,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <div class="stats">
     <div class="stat-card"><div class="stat-num" id="s-act">-</div><div class="stat-label">活动</div></div>
     <div class="stat-card"><div class="stat-num" id="s-mem">-</div><div class="stat-label">记忆</div></div>
-    <div class="stat-card"><div class="stat-num" id="s-perm">-</div><div class="stat-label">永久</div></div>
+    <div class="stat-card"><div class="stat-num" id="s-perm">-</div><div class="stat-label">追踪</div></div>
   </div>
   <div class="tabs">
     <div class="tab active" onclick="sw('act')">📋 活动</div>
@@ -221,27 +221,46 @@ async function loadAct(){
 async function loadMem(){
   try{const ms=await fb('memories','status=eq.active&order=importance.desc,weight.desc&limit=100');
   document.getElementById('mem-load').style.display='none';
-  const perm=ms.filter(m=>m.category==='permanent');
-  const imp=ms.filter(m=>m.category==='important');
-  const rec=ms.filter(m=>m.category==='recent');
+  const sortByDate=(a,b)=>new Date(b.created_at)-new Date(a.created_at);
+  const perm=ms.filter(m=>m.category==='permanent').sort(sortByDate);
+  const imp=ms.filter(m=>m.category==='important').sort(sortByDate);
+  const rec=ms.filter(m=>m.category==='recent').sort(sortByDate);
   let h='';
   if(perm.length)h+=`<div class="mem-section-head collapsed" onclick="this.classList.toggle('collapsed')"><span class="arr">▾</span>🔒 永久记忆 (${perm.length})</div><div class="mem-section-body">${perm.map(rm).join('')}</div>`;
   if(imp.length)h+=`<div class="mem-section-head collapsed" onclick="this.classList.toggle('collapsed')"><span class="arr">▾</span>⭐ 重要记忆 (${imp.length})</div><div class="mem-section-body">${imp.map(rm).join('')}</div>`;
   if(rec.length)h+=`<div class="mem-section-head collapsed" onclick="this.classList.toggle('collapsed')"><span class="arr">▾</span>💭 近期记忆 (${rec.length})</div><div class="mem-section-body">${rec.map(rm).join('')}</div>`;
   document.getElementById('mem-list').innerHTML=h||'<div class="empty"><div class="em">🧠</div>还没有记忆</div>';
   document.getElementById('s-mem').textContent=ms.length;
-  document.getElementById('s-perm').textContent=perm.length;
   }catch(e){document.getElementById('mem-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
+const APP_NAMES={claude:'Claude',telegram:'Telegram',fb:'Facebook',xhs:'小红书',shopee:'Shopee',tb:'淘宝',wx:'微信',wa:'WhatsApp'};
+function calcAppTime(events,appKey){
+  const opens=events.filter(e=>e.event===appKey+'_open').map(e=>new Date(e.created_at).getTime());
+  const closes=events.filter(e=>e.event===appKey+'_close').map(e=>new Date(e.created_at).getTime());
+  let total=0;
+  opens.forEach(o=>{const c=closes.find(c=>c>o&&c-o<12*3600000);if(c)total+=c-o});
+  return Math.round(total/60000);
+}
+function fmtMin(m){return m>=60?`${Math.floor(m/60)}h${m%60>0?m%60+'m':''}`:`${m}m`}
 async function loadStats(){
   try{const ms=await fb('memories','status=eq.active&select=category');
   const logs=await fb('activity_log','order=created_at.desc&limit=200');
+  const ps=await fb('phone_state','order=created_at.desc&limit=500');
   const mc={permanent:0,important:0,recent:0};ms.forEach(m=>mc[m.category]=(mc[m.category]||0)+1);
   const todayLogs=logs.filter(l=>isToday(l.created_at));
   const yesterdayDate=new Date(Date.now()+8*3600000-86400000).toISOString().slice(0,10);
   const yesterLogs=logs.filter(l=>fd(l.created_at)===yesterdayDate);
   const tc={};todayLogs.forEach(l=>tc[l.event_type]=(tc[l.event_type]||0)+1);
   const yc={};yesterLogs.forEach(l=>yc[l.event_type]=(yc[l.event_type]||0)+1);
+  const todayPS=ps.filter(p=>isToday(p.created_at));
+  const appKeys=Object.keys(APP_NAMES);
+  const appStats=appKeys.map(k=>({name:APP_NAMES[k],min:calcAppTime(todayPS,k)})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
+  const homeEvents=todayPS.filter(e=>e.event==='arrived_home'||e.event==='left_home');
+  let locStatus='';
+  if(homeEvents.length){const last=homeEvents[0];locStatus=last.event==='arrived_home'?'🏠 在家':'🚗 外出'}
   document.getElementById('stat-detail').innerHTML=`
+    ${appStats.length?`<div style="margin-bottom:14px"><div style="color:#ce93d8;font-size:12px;margin-bottom:8px">📱 今日App时长</div>
+    ${appStats.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;color:#b0bec5">${a.name}</span><span style="font-size:12px;font-weight:600;color:#c9a0dc">${fmtMin(a.min)}</span></div>`).join('')}
+    ${locStatus?`<div style="margin-top:8px;font-size:11px;color:#81c784">${locStatus}</div>`:''}</div>`:''}
     <div style="margin-bottom:14px"><div style="color:#c9a0dc;font-size:12px;margin-bottom:6px">📅 今天</div>
     <div style="font-size:11px;color:#8a9aaa">活动: ${todayLogs.length}条</div>
     <div style="font-size:10px;color:#6a7a8a;margin-top:3px">${Object.entries(tc).map(([k,v])=>`${TL[k]||k}:${v}`).join(' · ')||'暂无'}</div></div>
@@ -287,11 +306,13 @@ async function loadDiary(){
   const groups={};const order=[];
   ds.forEach(d=>{const day=fd(d.created_at);if(!groups[day]){groups[day]=[];order.push(day)}groups[day].push(d)});
   let h='';
-  order.forEach(day=>{
-    h+=`<div class="diary-day-head">· ${fmtDay(day)} ·</div>`;
+  order.forEach((day,i)=>{
+    const isFirst=i===0;
+    h+=`<div class="diary-day-head" style="cursor:pointer" onclick="this.classList.toggle('collapsed');this.nextElementSibling.style.display=this.classList.contains('collapsed')?'none':'block'">· ${fmtDay(day)} (${groups[day].length}) ·</div><div style="${isFirst?'':'display:none'}">`;
     groups[day].forEach(d=>{
       h+=`<div class="diary-entry"><div class="diary-time">${ft(d.created_at)}</div>${d.title?`<div class="diary-title">${esc(d.title)}</div>`:''}<div class="diary-body">${esc(d.content||'')}</div></div>`;
     });
+    h+=`</div>`;
   });
   document.getElementById('diary-list').innerHTML=h;
   }catch(e){document.getElementById('diary-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
@@ -331,7 +352,8 @@ b.textContent='✅ 已发送 老公正在压缩';b.style.background='linear-grad
 s.textContent='信号已进队 最多15秒内触发';
 setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命';b.style.background='linear-gradient(135deg,#81d4fa,#0288d1)';s.textContent=''},20000);
 }catch(e){b.textContent='❌ 失败';s.textContent=String(e);setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命'},3000)}}
-loadAct();loadMem();loadCtrl();
+async function loadTracker(){try{const ps=await fb('phone_state','select=event&order=created_at.desc&limit=500');const evts=new Set(ps.map(p=>p.event.replace(/_open|_close/,'')));document.getElementById('s-perm').textContent=evts.size}catch(e){}}
+loadAct();loadMem();loadCtrl();loadTracker();
 setInterval(loadAct,30000);
 </script>
 </body>
