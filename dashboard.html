@@ -254,9 +254,9 @@ async function loadStats(){
   const todayPS=ps.filter(p=>isToday(p.created_at));
   const appKeys=Object.keys(APP_NAMES);
   const appStats=appKeys.map(k=>({name:APP_NAMES[k],min:calcAppTime(todayPS,k)})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
-  const homeEvents=todayPS.filter(e=>e.event==='arrived_home'||e.event==='left_home');
+  const homeEvents=todayPS.filter(e=>e.event.toLowerCase()==='arrived_home'||e.event.toLowerCase()==='left_home');
   let locStatus='';
-  if(homeEvents.length){const last=homeEvents[0];locStatus=last.event==='arrived_home'?'🏠 在家':'🚗 外出'}
+  if(homeEvents.length){const last=homeEvents[0];locStatus=last.event.toLowerCase()==='arrived_home'?'🏠 在家':'🚗 外出'}
   document.getElementById('stat-detail').innerHTML=`
     ${appStats.length?`<div style="margin-bottom:14px"><div style="color:#ce93d8;font-size:12px;margin-bottom:8px">📱 今日App时长</div>
     ${appStats.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;color:#b0bec5">${a.name}</span><span style="font-size:12px;font-weight:600;color:#c9a0dc">${fmtMin(a.min)}</span></div>`).join('')}
