@@ -457,10 +457,11 @@ function update() {
     if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * DAMPING; }
     if (b.x + b.r > CANVAS_W) { b.x = CANVAS_W - b.r; b.vx = -Math.abs(b.vx) * DAMPING; }
     if (b.y + b.r > CANVAS_H) { b.y = CANVAS_H - b.r; b.vy = -Math.abs(b.vy) * DAMPING; if (Math.abs(b.vy) < 0.5) b.vy = 0; b.vx *= (1 - FRICTION); }
+    if(Math.abs(b.vx)<0.3)b.vx=0;if(Math.abs(b.vy)<0.3&&b.y+b.r>=CANVAS_H-1)b.vy=0;
   }
 
   // Ball-ball collisions (multiple iterations for stability)
-  for (let iter = 0; iter < 5; iter++) {
+  for (let iter = 0; iter < 8; iter++) {
     for (let i = 0; i < balls.length; i++) {
       for (let j = i + 1; j < balls.length; j++) {
         resolveCollision(balls[i], balls[j]);
