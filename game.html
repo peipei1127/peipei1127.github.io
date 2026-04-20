@@ -167,17 +167,17 @@ canvas {
 
 <script>
 const TIERS = [
-  { emoji: '🍬', radius: 16, score: 1 },
-  { emoji: '🍪', radius: 20, score: 3 },
-  { emoji: '🧁', radius: 24, score: 6 },
-  { emoji: '🍩', radius: 28, score: 10 },
-  { emoji: '🍰', radius: 33, score: 15 },
-  { emoji: '🎂', radius: 38, score: 21 },
-  { emoji: '🍫', radius: 43, score: 28 },
-  { emoji: '🍭', radius: 48, score: 36 },
-  { emoji: '🍮', radius: 54, score: 45 },
-  { emoji: '🧀', radius: 60, score: 55 },
-  { emoji: '👑', radius: 68, score: 100 },
+  { emoji: '🍬', radius: 14, score: 1 },
+  { emoji: '🍪', radius: 17, score: 3 },
+  { emoji: '🧁', radius: 21, score: 6 },
+  { emoji: '🍩', radius: 25, score: 10 },
+  { emoji: '🍰', radius: 29, score: 15 },
+  { emoji: '🎂', radius: 34, score: 21 },
+  { emoji: '🍫', radius: 39, score: 28 },
+  { emoji: '🍭', radius: 44, score: 36 },
+  { emoji: '🍮', radius: 49, score: 45 },
+  { emoji: '🧀', radius: 55, score: 55 },
+  { emoji: '👑', radius: 62, score: 100 },
 ];
 
 const CANVAS_W = 400;
@@ -534,7 +534,7 @@ function draw() {
 
     // Preview ball
     ctx.globalAlpha = 0.6;
-    ctx.font = `${r * 1.4}px serif`;
+    ctx.font = `${r * 1.8}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(TIERS[currentTier].emoji, dropX, DANGER_Y - 10);
@@ -544,7 +544,7 @@ function draw() {
   // Balls
   for (const b of balls) {
     // Emoji
-    ctx.font = `${b.r * 1.4}px serif`;
+    ctx.font = `${b.r * 1.8}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(TIERS[b.tier].emoji, b.x, b.y);
