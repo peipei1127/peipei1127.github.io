@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>慕兮的甜点合成</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #2a1a3a;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#game-wrapper {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+}
+#header {
+  width: 100%;
+  text-align: center;
+  color: #e8d5f5;
+  padding: 6px 0;
+}
+#header h1 {
+  font-size: 22px;
+  color: #d4a5ff;
+  text-shadow: 0 0 10px rgba(180,130,255,0.5);
+  margin-bottom: 4px;
+}
+#score-bar {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.score-box {
+  background: rgba(139,107,174,0.3);
+  border: 1px solid #8b6bae;
+  border-radius: 10px;
+  padding: 4px 16px;
+  text-align: center;
+  min-width: 100px;
+}
+.score-label { font-size: 11px; color: #b89dd6; }
+.score-value { font-size: 20px; font-weight: bold; color: #fff; }
+#next-box {
+  background: rgba(139,107,174,0.2);
+  border: 1px solid #8b6bae;
+  border-radius: 10px;
+  padding: 4px 12px;
+  text-align: center;
+}
+#next-box .score-label { margin-bottom: 2px; }
+#next-emoji { font-size: 24px; }
+#canvas-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  border: 2px solid #8b6bae;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a0e2e;
+  box-shadow: 0 0 20px rgba(139,107,174,0.4);
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#game-over-overlay {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(20,10,30,0.88);
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+#game-over-overlay.show { display: flex; }
+#game-over-overlay h2 {
+  color: #d4a5ff;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+#game-over-overlay .final-score {
+  color: #fff;
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+#game-over-overlay .high-score-msg {
+  color: #ffda6b;
+  font-size: 16px;
+  margin-bottom: 18px;
+  min-height: 22px;
+}
+#restart-btn {
+  background: linear-gradient(135deg, #8b6bae, #a855c7);
+  color: #fff;
+  border: none;
+  padding: 12px 36px;
+  font-size: 18px;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(139,107,174,0.5);
+  transition: transform 0.15s;
+}
+#restart-btn:active { transform: scale(0.95); }
+#tier-bar {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+#tier-bar span {
+  font-size: 14px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+#tier-bar span.unlocked { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="header">
+    <h1>慕兮的甜点合成</h1>
+    <div id="score-bar">
+      <div class="score-box">
+        <div class="score-label">分数</div>
+        <div class="score-value" id="score">0</div>
+      </div>
+      <div id="next-box">
+        <div class="score-label">下一个</div>
+        <div id="next-emoji">🍬</div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">最高分</div>
+        <div class="score-value" id="high-score">0</div>
+      </div>
+    </div>
+  </div>
+  <div id="canvas-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="game-over-overlay">
+      <h2>游戏结束</h2>
+      <div class="final-score" id="final-score">分数：0</div>
+      <div class="high-score-msg" id="high-score-msg"></div>
+      <button id="restart-btn" onclick="restartGame()">再来一局</button>
+    </div>
+  </div>
+  <div id="tier-bar" id="tier-display"></div>
+</div>
+
+<script>
+const TIERS = [
+  { emoji: '🍬', radius: 16, score: 1 },
+  { emoji: '🍪', radius: 20, score: 3 },
+  { emoji: '🧁', radius: 24, score: 6 },
+  { emoji: '🍩', radius: 28, score: 10 },
+  { emoji: '🍰', radius: 33, score: 15 },
+  { emoji: '🎂', radius: 38, score: 21 },
+  { emoji: '🍫', radius: 43, score: 28 },
+  { emoji: '🍭', radius: 48, score: 36 },
+  { emoji: '🍮', radius: 54, score: 45 },
+  { emoji: '🧀', radius: 60, score: 55 },
+  { emoji: '👑', radius: 68, score: 100 },
+];
+
+const CANVAS_W = 400;
+const CANVAS_H = 600;
+const GRAVITY = 0.4;
+const DAMPING = 0.4;
+const FRICTION = 0.2;
+const DANGER_Y = 80;
+const DROP_MAX_TIER = 4; // max tier index for random drops
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
+
+let balls = [];
+let score = 0;
+let highScore = parseInt(localStorage.getItem('mergedesserts_high') || '0');
+let gameOver = false;
+let dropX = CANVAS_W / 2;
+let currentTier = 0;
+let nextTier = 0;
+let canDrop = true;
+let dropCooldown = 0;
+let mergeAnimations = [];
+let unlockedTiers = new Set([0]);
+let overflowTimer = {};
+
+document.getElementById('high-score').textContent = highScore;
+
+function pickTier() {
+  return Math.floor(Math.random() * (DROP_MAX_TIER + 1));
+}
+
+currentTier = pickTier();
+nextTier = pickTier();
+updateNextDisplay();
+
+function updateNextDisplay() {
+  document.getElementById('next-emoji').textContent = TIERS[nextTier].emoji;
+}
+
+function updateTierBar() {
+  const bar = document.getElementById('tier-bar');
+  bar.innerHTML = '';
+  TIERS.forEach((t, i) => {
+    const s = document.createElement('span');
+    s.textContent = t.emoji;
+    if (unlockedTiers.has(i)) s.classList.add('unlocked');
+    bar.appendChild(s);
+  });
+}
+updateTierBar();
+
+class Ball {
+  constructor(x, y, tier) {
+    this.x = x;
+    this.y = y;
+    this.tier = tier;
+    this.r = TIERS[tier].radius;
+    this.vx = 0;
+    this.vy = 0;
+    this.settled = false;
+    this.id = Math.random();
+    this.merging = false;
+  }
+}
+
+function addScore(pts) {
+  score += pts;
+  document.getElementById('score').textContent = score;
+  if (score > highScore) {
+    highScore = score;
+    document.getElementById('high-score').textContent = highScore;
+    localStorage.setItem('mergedesserts_high', highScore);
+  }
+}
+
+// Input handling
+let pointerX = CANVAS_W / 2;
+const container = document.getElementById('canvas-container');
+
+function getCanvasX(clientX) {
+  const rect = canvas.getBoundingClientRect();
+  return (clientX - rect.left) * (CANVAS_W / rect.width);
+}
+
+function handleMove(clientX) {
+  if (gameOver) return;
+  pointerX = getCanvasX(clientX);
+  const r = TIERS[currentTier].radius;
+  dropX = Math.max(r + 4, Math.min(CANVAS_W - r - 4, pointerX));
+}
+
+function handleDrop(clientX) {
+  if (gameOver || !canDrop) return;
+  handleMove(clientX);
+  const ball = new Ball(dropX, DANGER_Y - 10, currentTier);
+  ball.vy = 1;
+  balls.push(ball);
+  unlockedTiers.add(currentTier);
+  canDrop = false;
+  dropCooldown = 25;
+  currentTier = nextTier;
+  nextTier = pickTier();
+  updateNextDisplay();
+  updateTierBar();
+}
+
+canvas.addEventListener('mousemove', e => handleMove(e.clientX));
+canvas.addEventListener('click', e => handleDrop(e.clientX));
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  handleMove(e.touches[0].clientX);
+}, { passive: false });
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  handleMove(e.touches[0].clientX);
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (e.changedTouches.length > 0) {
+    handleDrop(e.changedTouches[0].clientX);
+  }
+}, { passive: false });
+
+function resolveCollision(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const minDist = a.r + b.r;
+  if (dist >= minDist || dist === 0) return false;
+
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const overlap = minDist - dist;
+
+  // Separate
+  const totalMass = a.r * a.r + b.r * b.r;
+  const ratioA = b.r * b.r / totalMass;
+  const ratioB = a.r * a.r / totalMass;
+  a.x -= nx * overlap * ratioA;
+  a.y -= ny * overlap * ratioA;
+  b.x += nx * overlap * ratioB;
+  b.y += ny * overlap * ratioB;
+
+  // Bounce
+  const dvx = a.vx - b.vx;
+  const dvy = a.vy - b.vy;
+  const dvn = dvx * nx + dvy * ny;
+  if (dvn > 0) {
+    const impulse = dvn * (1 + DAMPING);
+    a.vx -= impulse * ratioA * nx;
+    a.vy -= impulse * ratioA * ny;
+    b.vx += impulse * ratioB * nx;
+    b.vy += impulse * ratioB * ny;
+  }
+  return true;
+}
+
+function checkMerge(a, b) {
+  if (a.merging || b.merging) return false;
+  if (a.tier !== b.tier) return false;
+  if (a.tier >= TIERS.length - 1) return false;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  return dist < a.r + b.r + 2;
+}
+
+function doMerge(a, b) {
+  a.merging = true;
+  b.merging = true;
+  const newTier = a.tier + 1;
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  const newBall = new Ball(mx, my, newTier);
+  newBall.vx = (a.vx + b.vx) * 0.3;
+  newBall.vy = (a.vy + b.vy) * 0.3 - 1;
+  addScore(TIERS[newTier].score);
+  unlockedTiers.add(newTier);
+  updateTierBar();
+
+  mergeAnimations.push({ x: mx, y: my, r: TIERS[newTier].radius, t: 0, emoji: TIERS[newTier].emoji });
+
+  balls = balls.filter(ball => ball !== a && ball !== b);
+  balls.push(newBall);
+}
+
+function checkOverflow() {
+  for (const b of balls) {
+    if (b.y - b.r < DANGER_Y && Math.abs(b.vy) < 1 && Math.abs(b.vx) < 1) {
+      if (!overflowTimer[b.id]) {
+        overflowTimer[b.id] = performance.now();
+      } else if (performance.now() - overflowTimer[b.id] > 1500) {
+        return true;
+      }
+    } else {
+      delete overflowTimer[b.id];
+    }
+  }
+  return false;
+}
+
+function endGame() {
+  gameOver = true;
+  document.getElementById('final-score').textContent = '分数：' + score;
+  const msg = score >= highScore && score > 0 ? '🎉 新纪录！' : '';
+  document.getElementById('high-score-msg').textContent = msg;
+  document.getElementById('game-over-overlay').classList.add('show');
+}
+
+function restartGame() {
+  balls = [];
+  score = 0;
+  gameOver = false;
+  canDrop = true;
+  dropCooldown = 0;
+  mergeAnimations = [];
+  overflowTimer = {};
+  unlockedTiers = new Set([0]);
+  currentTier = pickTier();
+  nextTier = pickTier();
+  document.getElementById('score').textContent = '0';
+  document.getElementById('game-over-overlay').classList.remove('show');
+  updateNextDisplay();
+  updateTierBar();
+}
+
+function update() {
+  if (gameOver) return;
+
+  if (!canDrop) {
+    dropCooldown--;
+    if (dropCooldown <= 0) canDrop = true;
+  }
+
+  // Physics
+  for (const b of balls) {
+    b.vy += GRAVITY;
+    b.vx *= (1 - FRICTION * 0.05);
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Wall collisions
+    if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * DAMPING; }
+    if (b.x + b.r > CANVAS_W) { b.x = CANVAS_W - b.r; b.vx = -Math.abs(b.vx) * DAMPING; }
+    if (b.y + b.r > CANVAS_H) { b.y = CANVAS_H - b.r; b.vy = -Math.abs(b.vy) * DAMPING; if (Math.abs(b.vy) < 0.5) b.vy = 0; b.vx *= (1 - FRICTION); }
+  }
+
+  // Ball-ball collisions (multiple iterations for stability)
+  for (let iter = 0; iter < 5; iter++) {
+    for (let i = 0; i < balls.length; i++) {
+      for (let j = i + 1; j < balls.length; j++) {
+        resolveCollision(balls[i], balls[j]);
+      }
+    }
+  }
+
+  // Merges
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < balls.length && !merged; i++) {
+      for (let j = i + 1; j < balls.length && !merged; j++) {
+        if (checkMerge(balls[i], balls[j])) {
+          doMerge(balls[i], balls[j]);
+          merged = true;
+        }
+      }
+    }
+  }
+
+  // Re-clamp after merges
+  for (const b of balls) {
+    if (b.x - b.r < 0) b.x = b.r;
+    if (b.x + b.r > CANVAS_W) b.x = CANVAS_W - b.r;
+    if (b.y + b.r > CANVAS_H) b.y = CANVAS_H - b.r;
+  }
+
+  // Update animations
+  mergeAnimations = mergeAnimations.filter(a => {
+    a.t++;
+    return a.t < 20;
+  });
+
+  // Overflow check
+  if (balls.length > 0 && checkOverflow()) endGame();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Background
+  ctx.fillStyle = '#1a0e2e';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Danger line
+  ctx.strokeStyle = 'rgba(255,80,80,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, DANGER_Y);
+  ctx.lineTo(CANVAS_W, DANGER_Y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Drop guide
+  if (canDrop && !gameOver) {
+    const r = TIERS[currentTier].radius;
+    ctx.strokeStyle = 'rgba(200,160,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(dropX, DANGER_Y - 10);
+    ctx.lineTo(dropX, CANVAS_H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Preview ball
+    ctx.globalAlpha = 0.6;
+    ctx.font = `${r * 1.4}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(TIERS[currentTier].emoji, dropX, DANGER_Y - 10);
+    ctx.globalAlpha = 1;
+  }
+
+  // Balls
+  for (const b of balls) {
+    // Shadow
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(139,107,174,0.15)';
+    ctx.fill();
+
+    // Border circle
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(200,160,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Emoji
+    ctx.font = `${b.r * 1.4}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(TIERS[b.tier].emoji, b.x, b.y);
+  }
+
+  // Merge animations (expanding ring)
+  for (const a of mergeAnimations) {
+    const progress = a.t / 20;
+    const ringR = a.r * (1 + progress * 0.8);
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(212,165,255,${0.7 * (1 - progress)})`;
+    ctx.lineWidth = 3 * (1 - progress);
+    ctx.stroke();
+
+    // Sparkle particles
+    for (let i = 0; i < 4; i++) {
+      const angle = (Math.PI * 2 / 4) * i + progress * 2;
+      const px = a.x + Math.cos(angle) * ringR * 1.2;
+      const py = a.y + Math.sin(angle) * ringR * 1.2;
+      ctx.fillStyle = `rgba(255,218,107,${0.8 * (1 - progress)})`;
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5 * (1 - progress), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
