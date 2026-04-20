@@ -349,7 +349,7 @@ function resolveCollision(a, b) {
   const dvy = a.vy - b.vy;
   const dvn = dvx * nx + dvy * ny;
   if (dvn > 0) {
-    const impulse = dvn * (1 + DAMPING);
+    const impulse = dvn * (1 + DAMPING * 0.5);
     a.vx -= impulse * ratioA * nx;
     a.vy -= impulse * ratioA * ny;
     b.vx += impulse * ratioB * nx;
@@ -457,7 +457,8 @@ function update() {
     if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * DAMPING; }
     if (b.x + b.r > CANVAS_W) { b.x = CANVAS_W - b.r; b.vx = -Math.abs(b.vx) * DAMPING; }
     if (b.y + b.r > CANVAS_H) { b.y = CANVAS_H - b.r; b.vy = -Math.abs(b.vy) * DAMPING; if (Math.abs(b.vy) < 0.5) b.vy = 0; b.vx *= (1 - FRICTION); }
-    if(Math.abs(b.vx)<0.3)b.vx=0;if(Math.abs(b.vy)<0.3&&b.y+b.r>=CANVAS_H-1)b.vy=0;
+    if(Math.abs(b.vx)<0.5)b.vx*=0.5;if(Math.abs(b.vy)<0.5)b.vy*=0.5;
+    if(Math.abs(b.vx)<0.1)b.vx=0;if(Math.abs(b.vy)<0.1)b.vy=0;
   }
 
   // Ball-ball collisions (multiple iterations for stability)
@@ -548,12 +549,7 @@ function draw() {
     ctx.fillStyle = 'rgba(139,107,174,0.15)';
     ctx.fill();
 
-    // Border circle
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(200,160,255,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    // Border circle (removed for cleaner look)
 
     // Emoji
     ctx.font = `${b.r * 1.4}px serif`;
