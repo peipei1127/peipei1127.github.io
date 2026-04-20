@@ -182,11 +182,11 @@ const TIERS = [
 
 const CANVAS_W = 400;
 const CANVAS_H = 600;
-const GRAVITY = 0.4;
+const GRAVITY = 0.6;
 const DAMPING = 0.4;
 const FRICTION = 0.2;
 const DANGER_Y = 80;
-const DROP_MAX_TIER = 4; // max tier index for random drops
+const DROP_MAX_TIER = 4;
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -215,8 +215,15 @@ let nextTier = 0;
 let canDrop = true;
 let dropCooldown = 0;
 let mergeAnimations = [];
+let textEffects = [];
 let unlockedTiers = new Set([0]);
 let overflowTimer = {};
+let combo = 0;
+let comboTimer = 0;
+let shakeAmount = 0;
+const COMBO_WINDOW = 60;
+const MERGE_TEXTS = ['好吃！','甜甜的~','太棒了！','哇塞！','绝了！','无敌！','逆天！'];
+const COMBO_TEXTS = ['连击x','太厉害了！','停不下来！','甜点大师！','合成之王！'];
 
 document.getElementById('high-score').textContent = highScore;
 
@@ -374,6 +381,12 @@ function doMerge(a, b) {
   unlockedTiers.add(newTier);
   updateTierBar();
   mergeSound(newTier);
+  if(comboTimer>0){combo++;shakeAmount=Math.min(combo*2,12)}else{combo=1;shakeAmount=3}
+  comboTimer=COMBO_WINDOW;
+  let txt=MERGE_TEXTS[Math.min(newTier,MERGE_TEXTS.length-1)];
+  if(combo>=2)txt=COMBO_TEXTS[0]+combo+'！';
+  if(combo>=4)txt=COMBO_TEXTS[Math.min(combo-3,COMBO_TEXTS.length-1)];
+  textEffects.push({x:mx,y:my-20,text:txt,t:0,color:combo>=3?'#ffd700':'#fff',size:combo>=2?20+combo*2:18});
 
   mergeAnimations.push({ x: mx, y: my, r: TIERS[newTier].radius, t: 0, emoji: TIERS[newTier].emoji });
 
@@ -424,6 +437,9 @@ function restartGame() {
 
 function update() {
   if (gameOver) return;
+  if(comboTimer>0)comboTimer--;else combo=0;
+  if(shakeAmount>0)shakeAmount*=0.9;
+  textEffects=textEffects.filter(e=>{e.t++;e.y-=1.2;return e.t<50});
 
   if (!canDrop) {
     dropCooldown--;
@@ -485,10 +501,12 @@ function update() {
 
 function draw() {
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.save();
+  if(shakeAmount>0.5){ctx.translate((Math.random()-0.5)*shakeAmount,(Math.random()-0.5)*shakeAmount)}
 
   // Background
   ctx.fillStyle = '#1a0e2e';
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.fillRect(-5, -5, CANVAS_W+10, CANVAS_H+10);
 
   // Danger line
   ctx.strokeStyle = 'rgba(255,80,80,0.4)';
@@ -564,6 +582,21 @@ function draw() {
       ctx.fill();
     }
   }
+
+  // Text effects
+  for(const e of textEffects){
+    const alpha=1-e.t/50;
+    const scale=Math.min(1,e.t/8);
+    ctx.globalAlpha=alpha;
+    ctx.font=`bold ${Math.round(e.size*scale)}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=e.color;
+    ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=3;
+    ctx.strokeText(e.text,e.x,e.y);
+    ctx.fillText(e.text,e.x,e.y);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
 }
 
 function loop() {
