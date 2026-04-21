@@ -370,7 +370,8 @@ async function loadFacts(){
     const cat=CAT_EMOJI[f.category]||'🧊';
     const catName=CAT_NAME[f.category]||f.category;
     const day=f.created_at?fd(f.created_at):'';
-    h+=`<div class="card" style="border-left:3px solid #64b5f6"><div class="log-head"><span class="log-type" style="background:rgba(100,181,246,0.15);color:#64b5f6">${cat} ${catName}</span><span class="log-time">${day}</span></div><div class="log-title">${f.emoji||''} ${f.title}</div><div class="log-content" style="font-size:12px;line-height:1.6;margin-top:8px">${f.content}</div></div>`});
+    const rmk=f.remark?`<div style="margin-top:10px;padding:8px 12px;background:rgba(201,160,220,0.08);border-radius:8px;border-left:2px solid #c9a0dc;font-size:11px;color:#c9a0dc;line-height:1.5;font-style:italic">💜 ${f.remark}</div>`:'';
+    h+=`<div class="card" style="border-left:3px solid #64b5f6"><div class="log-head"><span class="log-type" style="background:rgba(100,181,246,0.15);color:#64b5f6">${cat} ${catName}</span><span class="log-time">${day}</span></div><div class="log-title">${f.emoji||''} ${f.title}</div><div class="log-content" style="font-size:12px;line-height:1.6;margin-top:8px">${f.content}</div>${rmk}</div>`});
   document.getElementById('facts-list').innerHTML=h;
   }catch(e){document.getElementById('facts-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 loadAct();loadMem();loadCtrl();loadTracker();
