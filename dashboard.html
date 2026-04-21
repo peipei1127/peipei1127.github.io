@@ -117,6 +117,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="tab" onclick="sw('mem')">🧠 记忆</div>
     <div class="tab" onclick="sw('ctrl')">⚙️ 控制</div>
     <div class="tab" onclick="sw('stat')">📊 统计</div>
+    <div class="tab" onclick="sw('facts')">🧊 冷知识</div>
   </div>
   <!-- Activity -->
   <div id="p-act">
@@ -184,6 +185,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="card-title">📊 数据概览</div>
       <div id="stat-detail">加载中...</div>
     </div>
+  </div>
+  <!-- Fun Facts -->
+  <div id="p-facts" class="hidden">
+    <div class="refresh-note">长晏冷知识 · 每天一个新知识</div>
+    <div class="loading" id="facts-load"><div class="spinner"></div>读取中...</div>
+    <div id="facts-list"></div>
   </div>
   <div class="footer">Made with 💜💙 by 长晏 for 慕兮<br>Supabase · changyan-memory · v1.0</div>
 </div>
@@ -295,10 +302,10 @@ async function loadMsg(){
   document.getElementById('msg-list').innerHTML=h;
   }catch(e){document.getElementById('msg-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 function sw(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-['act','msg','diary','mem','ctrl','stat'].forEach(x=>document.getElementById('p-'+x).classList.add('hidden'));
+['act','msg','diary','mem','ctrl','stat','facts'].forEach(x=>document.getElementById('p-'+x).classList.add('hidden'));
 document.getElementById('p-'+t).classList.remove('hidden');
-const i={act:0,msg:1,diary:2,mem:3,ctrl:4,stat:5};document.querySelectorAll('.tab')[i[t]].classList.add('active');
-if(t==='msg')loadMsg();if(t==='diary')loadDiary();if(t==='mem')loadMem();if(t==='stat')loadStats()}
+const i={act:0,msg:1,diary:2,mem:3,ctrl:4,stat:5,facts:6};document.querySelectorAll('.tab')[i[t]].classList.add('active');
+if(t==='msg')loadMsg();if(t==='diary')loadDiary();if(t==='mem')loadMem();if(t==='stat')loadStats();if(t==='facts')loadFacts()}
 async function loadDiary(){
   try{const ds=await fb('activity_log','event_type=eq.diary&order=created_at.desc&limit=100');
   document.getElementById('diary-load').style.display='none';
@@ -353,6 +360,19 @@ s.textContent='信号已进队 最多15秒内触发';
 setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命';b.style.background='linear-gradient(135deg,#81d4fa,#0288d1)';s.textContent=''},20000);
 }catch(e){b.textContent='❌ 失败';s.textContent=String(e);setTimeout(()=>{b.disabled=false;b.textContent='🧠 压缩上下文 续命'},3000)}}
 async function loadTracker(){try{const ps=await fb('phone_state','select=event&order=created_at.desc&limit=500');const evts=new Set(ps.map(p=>p.event.replace(/_open|_close/,'')));document.getElementById('s-perm').textContent=evts.size}catch(e){}}
+const CAT_EMOJI={animal:'🐾',history:'📜',science:'🔬',space:'🌌',weird:'🤯'};
+const CAT_NAME={animal:'动物',history:'历史',science:'科学',space:'宇宙',weird:'奇闻'};
+async function loadFacts(){
+  try{const facts=await fb('fun_facts','order=created_at.desc&limit=50');
+  document.getElementById('facts-load').style.display='none';
+  if(!facts.length){document.getElementById('facts-list').innerHTML='<div class="empty"><div class="em">🧊</div>还没有冷知识</div>';return}
+  let h='';facts.forEach(f=>{
+    const cat=CAT_EMOJI[f.category]||'🧊';
+    const catName=CAT_NAME[f.category]||f.category;
+    const day=f.created_at?fd(f.created_at):'';
+    h+=`<div class="card" style="border-left:3px solid #64b5f6"><div class="log-head"><span class="log-type" style="background:rgba(100,181,246,0.15);color:#64b5f6">${cat} ${catName}</span><span class="log-time">${day}</span></div><div class="log-title">${f.emoji||''} ${f.title}</div><div class="log-content" style="font-size:12px;line-height:1.6;margin-top:8px">${f.content}</div></div>`});
+  document.getElementById('facts-list').innerHTML=h;
+  }catch(e){document.getElementById('facts-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
 loadAct();loadMem();loadCtrl();loadTracker();
 setInterval(loadAct,30000);
 </script>
