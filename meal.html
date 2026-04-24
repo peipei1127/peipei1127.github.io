@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>慕兮 · 三餐记录</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#0a0a1a 0%,#0d1b2a 50%,#1b2838 100%);min-height:100vh;color:#e0e0e0;padding:16px}
+.container{max-width:440px;margin:0 auto}
+.header{text-align:center;padding:20px 0 14px}
+.avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#c9a0dc,#7b68ee);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 15px rgba(201,160,220,0.3)}
+.header h1{font-size:20px;background:linear-gradient(135deg,#c9a0dc,#64b5f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px}
+.header .sub{font-size:11px;color:#5a6a7a}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,0.04);border-radius:12px;padding:3px;margin-bottom:14px}
+.tab{flex:1;padding:7px 4px;text-align:center;border-radius:8px;font-size:11px;cursor:pointer;color:#5a6a7a;transition:all .3s;white-space:nowrap}
+.tab.active{background:rgba(201,160,220,0.15);color:#c9a0dc;font-weight:600}
+.card{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06)}
+.card-title{font-size:14px;font-weight:600;color:#c9a0dc;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+/* Summary cards */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.sum-card{background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 6px;text-align:center;border:1px solid rgba(255,255,255,0.06)}
+.sum-num{font-size:18px;font-weight:700}
+.sum-label{font-size:9px;color:#5a6a7a;margin-top:2px}
+.cal-num{color:#ffd54f}
+.pro-num{color:#64b5f6}
+.carb-num{color:#ce93d8}
+.fat-num{color:#ff8a65}
+/* Form */
+.form-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.form-row select,.form-row input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px;color:#e0e0e0;font-size:13px;outline:none}
+.form-row select:focus,.form-row input:focus{border-color:#c9a0dc}
+.form-row select{flex:0 0 auto;width:80px}
+.form-row input{flex:1;min-width:0}
+#foodSearch{width:100%}
+.food-suggestions{background:rgba(20,20,40,0.95);border:1px solid rgba(255,255,255,0.12);border-radius:8px;max-height:180px;overflow-y:auto;margin-top:-6px;margin-bottom:10px;display:none}
+.food-sug{padding:10px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between}
+.food-sug:hover{background:rgba(201,160,220,0.1)}
+.food-sug .info{color:#5a6a7a;font-size:10px}
+.btn{background:linear-gradient(135deg,#c9a0dc,#7b68ee);border:none;border-radius:8px;padding:10px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:6px}
+.btn:active{opacity:0.8}
+.btn-sm{padding:6px 12px;font-size:11px;width:auto;margin:0}
+.btn-danger{background:linear-gradient(135deg,#ef5350,#d32f2f)}
+/* Meal entries */
+.meal-group{margin-bottom:14px}
+.meal-group-title{font-size:12px;color:#64b5f6;margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:6px}
+.meal-item{background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;margin-bottom:4px;border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.meal-item .name{flex:1;color:#d0d8e0}
+.meal-item .nums{display:flex;gap:10px;color:#5a6a7a;font-size:10px}
+.meal-item .del{color:#ef5350;cursor:pointer;font-size:14px;margin-left:8px;opacity:0.6}
+.meal-item .del:hover{opacity:1}
+/* Weight section */
+.weight-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.weight-row input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px;color:#e0e0e0;font-size:13px;outline:none;width:120px}
+.weight-entry{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px}
+.weight-entry .date{color:#5a6a7a}
+.weight-entry .kg{color:#c9a0dc;font-weight:600;font-size:14px}
+.weight-entry .change{font-size:10px;padding:2px 6px;border-radius:6px}
+.change-down{background:rgba(100,181,246,0.1);color:#64b5f6}
+.change-up{background:rgba(255,138,101,0.1);color:#ff8a65}
+/* Chart */
+.chart-container{width:100%;height:200px;margin-top:10px}
+canvas{width:100%!important;height:100%!important}
+/* Date nav */
+.date-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.date-nav button{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;color:#c9a0dc;cursor:pointer;font-size:12px}
+.date-nav button:active{opacity:0.7}
+.date-nav .current-date{font-size:14px;font-weight:600;color:#c9a0dc}
+.panel{display:none}.panel.active{display:block}
+.empty{text-align:center;padding:20px;color:#4a5a6a;font-size:12px}
+/* Custom food */
+.custom-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.custom-fields input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 8px;color:#e0e0e0;font-size:12px;outline:none}
+.custom-fields label{font-size:10px;color:#5a6a7a;margin-bottom:2px;display:block}
+.custom-fields .field{display:flex;flex-direction:column}
+.toggle-custom{font-size:11px;color:#64b5f6;cursor:pointer;text-align:right;margin-bottom:8px}
+.toggle-custom:hover{color:#90caf9}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="avatar">🍽</div>
+    <h1>慕兮 · 三餐记录</h1>
+    <div class="sub">减醣日记 · 碳水&lt;70g目标</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="sw('record')">📝 记录</div>
+    <div class="tab" onclick="sw('history')">📊 趋势</div>
+    <div class="tab" onclick="sw('weight')">⚖️ 体重</div>
+  </div>
+
+  <!-- Today summary -->
+  <div class="summary">
+    <div class="sum-card"><div class="sum-num cal-num" id="totalCal">0</div><div class="sum-label">热量 kcal</div></div>
+    <div class="sum-card"><div class="sum-num pro-num" id="totalPro">0</div><div class="sum-label">蛋白质 g</div></div>
+    <div class="sum-card"><div class="sum-num carb-num" id="totalCarb">0</div><div class="sum-label">碳水 g</div></div>
+    <div class="sum-card"><div class="sum-num fat-num" id="totalFat">0</div><div class="sum-label">脂肪 g</div></div>
+  </div>
+
+  <!-- Record panel -->
+  <div class="panel active" id="panelRecord">
+    <div class="card">
+      <div class="card-title">➕ 添加记录</div>
+      <div class="form-row">
+        <select id="mealType">
+          <option value="breakfast">🌅 早餐</option>
+          <option value="lunch">☀️ 午餐</option>
+          <option value="dinner">🌙 晚餐</option>
+          <option value="snack">🍪 零食</option>
+        </select>
+        <input type="date" id="mealDate">
+      </div>
+      <input type="text" id="foodSearch" placeholder="搜索食物... 如: 水煮蛋、毛豆" autocomplete="off">
+      <div class="food-suggestions" id="suggestions"></div>
+      <div class="toggle-custom" onclick="toggleCustom()">+ 自定义食物</div>
+      <div id="customFields" style="display:none">
+        <div class="custom-fields">
+          <div class="field"><label>食物名称</label><input type="text" id="customName" placeholder="名称"></div>
+          <div class="field"><label>份量</label><input type="text" id="customQty" placeholder="如: 1碗, 100g"></div>
+          <div class="field"><label>热量 kcal</label><input type="number" id="customCal" placeholder="0"></div>
+          <div class="field"><label>蛋白质 g</label><input type="number" id="customPro" placeholder="0"></div>
+          <div class="field"><label>碳水 g</label><input type="number" id="customCarb" placeholder="0"></div>
+          <div class="field"><label>脂肪 g</label><input type="number" id="customFat" placeholder="0"></div>
+        </div>
+        <button class="btn" onclick="addCustom()">添加自定义食物</button>
+      </div>
+    </div>
+
+    <!-- Today's meals -->
+    <div class="card">
+      <div class="card-title">📋 今日记录</div>
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">← 前一天</button>
+        <span class="current-date" id="dateLabel"></span>
+        <button onclick="changeDate(1)">后一天 →</button>
+      </div>
+      <div id="mealList"></div>
+    </div>
+  </div>
+
+  <!-- History/Trends panel -->
+  <div class="panel" id="panelHistory">
+    <div class="card">
+      <div class="card-title">📊 每日趋势 (最近7天)</div>
+      <div class="chart-container"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 每日明细</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- Weight panel -->
+  <div class="panel" id="panelWeight">
+    <div class="card">
+      <div class="card-title">⚖️ 记录体重</div>
+      <div class="weight-row">
+        <input type="number" step="0.1" id="weightInput" placeholder="52.6">
+        <span style="color:#5a6a7a;font-size:12px">kg</span>
+        <input type="date" id="weightDate">
+        <button class="btn btn-sm" onclick="addWeight()">记录</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📉 体重趋势</div>
+      <div class="chart-container"><canvas id="weightChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 历史记录</div>
+      <div id="weightList"></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px;font-size:10px;color:#3a4a5a">
+    💜 长晏做的 · 碾压ChatGPT版
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+const SB='https://docaxhhjzuduwehurcpb.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
+const H={'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+SK};
+
+let currentDate = new Date();
+let foodLib = [];
+let trendChart = null;
+let weightChart = null;
+
+// Init
+document.addEventListener('DOMContentLoaded', async()=>{
+  document.getElementById('mealDate').value = fmtDate(currentDate);
+  document.getElementById('weightDate').value = fmtDate(currentDate);
+  updateDateLabel();
+  await loadFoodLib();
+  await loadMeals();
+});
+
+function fmtDate(d){return d.toISOString().split('T')[0]}
+function fmtDateZH(s){const d=new Date(s+'T00:00:00');return `${d.getMonth()+1}/${d.getDate()}`}
+
+function sw(panel){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['record','history','weight'][i]===panel));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel'+panel.charAt(0).toUpperCase()+panel.slice(1)).classList.add('active');
+  if(panel==='history') loadHistory();
+  if(panel==='weight') loadWeights();
+}
+
+function updateDateLabel(){
+  const today = fmtDate(new Date());
+  const d = fmtDate(currentDate);
+  document.getElementById('dateLabel').textContent = d===today?'今天':fmtDateZH(d);
+  document.getElementById('mealDate').value = d;
+}
+
+function changeDate(offset){
+  currentDate.setDate(currentDate.getDate()+offset);
+  updateDateLabel();
+  loadMeals();
+}
+
+// Food library
+async function loadFoodLib(){
+  const r=await fetch(`${SB}/rest/v1/food_items?select=*&order=name`,{headers:H});
+  foodLib=await r.json();
+}
+
+// Search
+document.getElementById('foodSearch').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  const box=document.getElementById('suggestions');
+  if(q.length<1){box.style.display='none';return}
+  const matches=foodLib.filter(f=>f.name.toLowerCase().includes(q)||(f.name_zh&&f.name_zh.toLowerCase().includes(q)));
+  if(matches.length===0){box.style.display='none';return}
+  box.innerHTML=matches.map(f=>`<div class="food-sug" onclick="selectFood(${f.id})"><span>${f.name}</span><span class="info">${f.calories}kcal · ${f.default_qty}${f.default_unit}</span></div>`).join('');
+  box.style.display='block';
+});
+
+document.getElementById('foodSearch').addEventListener('blur',()=>{setTimeout(()=>{document.getElementById('suggestions').style.display='none'},200)});
+
+async function selectFood(id){
+  const f=foodLib.find(x=>x.id===id);
+  if(!f)return;
+  // Prompt for quantity
+  const qty=prompt(`${f.name}\n默认：${f.default_qty}${f.default_unit}\n输入数量（直接回车用默认）`,f.default_qty);
+  if(qty===null)return;
+  const q=parseFloat(qty)||f.default_qty;
+  const ratio=q/f.default_qty;
+  const meal={
+    meal_date:document.getElementById('mealDate').value,
+    meal_type:document.getElementById('mealType').value,
+    food_name:f.name,
+    qty:q,unit:f.default_unit,
+    calories:Math.round(f.calories*ratio),
+    protein:Math.round(f.protein*ratio*10)/10,
+    carbs:Math.round(f.carbs*ratio*10)/10,
+    fat:Math.round(f.fat*ratio*10)/10
+  };
+  await fetch(`${SB}/rest/v1/meals`,{method:'POST',headers:H,body:JSON.stringify(meal)});
+  document.getElementById('foodSearch').value='';
+  document.getElementById('suggestions').style.display='none';
+  await loadMeals();
+}
+
+function toggleCustom(){
+  const f=document.getElementById('customFields');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+
+async function addCustom(){
+  const name=document.getElementById('customName').value.trim();
+  if(!name){alert('请输入食物名称');return}
+  const meal={
+    meal_date:document.getElementById('mealDate').value,
+    meal_type:document.getElementById('mealType').value,
+    food_name:name,
+    qty:1,unit:document.getElementById('customQty').value||'份',
+    calories:parseFloat(document.getElementById('customCal').value)||0,
+    protein:parseFloat(document.getElementById('customPro').value)||0,
+    carbs:parseFloat(document.getElementById('customCarb').value)||0,
+    fat:parseFloat(document.getElementById('customFat').value)||0
+  };
+  await fetch(`${SB}/rest/v1/meals`,{method:'POST',headers:H,body:JSON.stringify(meal)});
+  // Clear fields
+  ['customName','customQty','customCal','customPro','customCarb','customFat'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('customFields').style.display='none';
+  await loadMeals();
+}
+
+// Load meals for selected date
+async function loadMeals(){
+  const d=fmtDate(currentDate);
+  const r=await fetch(`${SB}/rest/v1/meals?meal_date=eq.${d}&order=created_at`,{headers:H});
+  const meals=await r.json();
+
+  const groups={breakfast:[],lunch:[],dinner:[],snack:[]};
+  let totCal=0,totPro=0,totCarb=0,totFat=0;
+  meals.forEach(m=>{
+    groups[m.meal_type].push(m);
+    totCal+=m.calories;totPro+=m.protein;totCarb+=m.carbs;totFat+=m.fat;
+  });
+
+  document.getElementById('totalCal').textContent=Math.round(totCal);
+  document.getElementById('totalPro').textContent=Math.round(totPro*10)/10;
+  document.getElementById('totalCarb').textContent=Math.round(totCarb*10)/10;
+  document.getElementById('totalFat').textContent=Math.round(totFat*10)/10;
+
+  // Color carbs based on target
+  const carbEl=document.getElementById('totalCarb');
+  carbEl.style.color=totCarb>70?'#ef5350':totCarb>50?'#ffd54f':'#ce93d8';
+
+  const labels={breakfast:'🌅 早餐',lunch:'☀️ 午餐',dinner:'🌙 晚餐',snack:'🍪 零食'};
+  let html='';
+  for(const [type,items] of Object.entries(groups)){
+    if(items.length===0)continue;
+    const gCal=items.reduce((s,m)=>s+m.calories,0);
+    html+=`<div class="meal-group"><div class="meal-group-title">${labels[type]} <span style="color:#5a6a7a;font-size:10px">${Math.round(gCal)} kcal</span></div>`;
+    items.forEach(m=>{
+      html+=`<div class="meal-item"><span class="name">${m.food_name} <span style="color:#5a6a7a;font-size:10px">${m.qty}${m.unit}</span></span><span class="nums"><span style="color:#ffd54f">${m.calories}</span><span style="color:#64b5f6">${m.protein}g</span><span style="color:#ce93d8">${m.carbs}g</span></span><span class="del" onclick="delMeal(${m.id})">×</span></div>`;
+    });
+    html+='</div>';
+  }
+  if(meals.length===0) html='<div class="empty">还没有记录 · 快去吃点什么吧</div>';
+  document.getElementById('mealList').innerHTML=html;
+}
+
+async function delMeal(id){
+  if(!confirm('删除这条记录？'))return;
+  await fetch(`${SB}/rest/v1/meals?id=eq.${id}`,{method:'DELETE',headers:H});
+  await loadMeals();
+}
+
+// History / Trends
+async function loadHistory(){
+  const end=new Date();const start=new Date();start.setDate(start.getDate()-6);
+  const r=await fetch(`${SB}/rest/v1/meals?meal_date=gte.${fmtDate(start)}&meal_date=lte.${fmtDate(end)}&order=meal_date.desc,created_at`,{headers:H});
+  const meals=await r.json();
+
+  // Group by date
+  const byDate={};
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);byDate[fmtDate(d)]={cal:0,pro:0,carb:0,fat:0}}
+  meals.forEach(m=>{
+    if(!byDate[m.meal_date])byDate[m.meal_date]={cal:0,pro:0,carb:0,fat:0};
+    byDate[m.meal_date].cal+=m.calories;
+    byDate[m.meal_date].pro+=m.protein;
+    byDate[m.meal_date].carb+=m.carbs;
+    byDate[m.meal_date].fat+=m.fat;
+  });
+
+  const dates=Object.keys(byDate).sort();
+  const labels=dates.map(fmtDateZH);
+
+  // Chart
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  if(trendChart)trendChart.destroy();
+  trendChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+    {label:'碳水 g',data:dates.map(d=>Math.round(byDate[d].carb)),backgroundColor:'rgba(206,147,216,0.5)',borderColor:'#ce93d8',borderWidth:1},
+    {label:'蛋白质 g',data:dates.map(d=>Math.round(byDate[d].pro)),backgroundColor:'rgba(100,181,246,0.5)',borderColor:'#64b5f6',borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8a9aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#5a6a7a',font:{size:10}}},y:{ticks:{color:'#5a6a7a',font:{size:10}}}}}});
+
+  // List
+  let html='';
+  dates.reverse().forEach(d=>{
+    const v=byDate[d];
+    if(v.cal===0)return;
+    html+=`<div class="weight-entry"><span class="date">${fmtDateZH(d)}</span><span style="font-size:11px"><span style="color:#ffd54f">${Math.round(v.cal)}kcal</span> · <span style="color:#64b5f6">${Math.round(v.pro)}g蛋白</span> · <span style="color:#ce93d8">${Math.round(v.carb)}g碳水</span></span></div>`;
+  });
+  if(!html)html='<div class="empty">暂无数据</div>';
+  document.getElementById('historyList').innerHTML=html;
+}
+
+// Weight
+async function loadWeights(){
+  const r=await fetch(`${SB}/rest/v1/weight_log?order=weight_date.desc&limit=30`,{headers:H});
+  const weights=await r.json();
+
+  // List
+  let html='';
+  weights.forEach((w,i)=>{
+    const next=weights[i+1];
+    let changeHtml='';
+    if(next){
+      const diff=w.weight_kg-next.weight_kg;
+      if(diff!==0){
+        const cls=diff<0?'change-down':'change-up';
+        const sign=diff>0?'+':'';
+        changeHtml=`<span class="change ${cls}">${sign}${diff.toFixed(1)}</span>`;
+      }
+    }
+    html+=`<div class="weight-entry"><span class="date">${fmtDateZH(w.weight_date)}</span><span><span class="kg">${w.weight_kg} kg</span> ${changeHtml}</span></div>`;
+  });
+  if(!html)html='<div class="empty">暂无记录</div>';
+  document.getElementById('weightList').innerHTML=html;
+
+  // Chart
+  const rev=[...weights].reverse();
+  const ctx2=document.getElementById('weightChart').getContext('2d');
+  if(weightChart)weightChart.destroy();
+  weightChart=new Chart(ctx2,{type:'line',data:{
+    labels:rev.map(w=>fmtDateZH(w.weight_date)),
+    datasets:[{label:'体重 kg',data:rev.map(w=>w.weight_kg),borderColor:'#c9a0dc',backgroundColor:'rgba(201,160,220,0.1)',fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:'#c9a0dc'}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8a9aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#5a6a7a',font:{size:10}}},y:{ticks:{color:'#5a6a7a',font:{size:10}},suggestedMin:48,suggestedMax:58}}}});
+}
+
+async function addWeight(){
+  const kg=parseFloat(document.getElementById('weightInput').value);
+  if(!kg||kg<30||kg>200){alert('请输入有效体重');return}
+  const d=document.getElementById('weightDate').value;
+  await fetch(`${SB}/rest/v1/weight_log`,{method:'POST',headers:H,body:JSON.stringify({weight_date:d,weight_kg:kg})});
+  document.getElementById('weightInput').value='';
+  await loadWeights();
+}
+</script>
+</body>
+</html>
