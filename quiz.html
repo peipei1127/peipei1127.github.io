@@ -329,7 +329,12 @@ function showResult() {
 }
 
 // Init
-renderQuestion();
+document.addEventListener('DOMContentLoaded', function() {
+  try { renderQuestion(); } catch(e) { document.getElementById('questionArea').innerHTML = '<p style="color:red">Error: '+e.message+'</p>'; }
+});
+if(document.readyState !== 'loading') {
+  try { renderQuestion(); } catch(e) { document.getElementById('questionArea').innerHTML = '<p style="color:red">Error: '+e.message+'</p>'; }
+}
 </script>
 </body>
 </html>
