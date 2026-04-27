@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>长晏 · Chat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2e 50%,#0d1b2a 100%);min-height:100vh;min-height:100dvh;color:#e0e0e0;display:flex;justify-content:center}
+.app{width:100%;max-width:440px;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+
+/* Header */
+.chat-header{background:rgba(20,10,40,0.95);backdrop-filter:blur(20px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(201,160,220,0.15);z-index:10;flex-shrink:0}
+.header-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2d1b4e,#4a2d6e);display:flex;align-items:center;justify-content:center;font-size:18px;color:#c9a0dc;border:2px solid rgba(201,160,220,0.3);flex-shrink:0}
+.header-info{flex:1}
+.header-name{font-size:16px;font-weight:600;color:#e8d5f5}
+.header-status{font-size:11px;color:#7bc67e;display:flex;align-items:center;gap:4px}
+.header-status::before{content:'';width:6px;height:6px;border-radius:50%;background:#7bc67e;display:inline-block}
+.header-actions{display:flex;gap:12px}
+.header-actions button{background:none;border:none;color:#8a7a9a;font-size:18px;cursor:pointer;padding:4px}
+.header-actions button:hover{color:#c9a0dc}
+
+/* Tabs */
+.nav-tabs{display:flex;background:rgba(20,10,40,0.9);border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.nav-tab{flex:1;padding:10px 0;text-align:center;font-size:13px;color:#5a5070;cursor:pointer;transition:all .3s;position:relative}
+.nav-tab.active{color:#c9a0dc;font-weight:600}
+.nav-tab.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:linear-gradient(90deg,#c9a0dc,#7b68ee);border-radius:1px}
+
+/* Messages area */
+.messages-container{flex:1;overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:2px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.messages-container::-webkit-scrollbar{width:3px}
+.messages-container::-webkit-scrollbar-thumb{background:rgba(201,160,220,0.2);border-radius:3px}
+
+/* Timestamp divider */
+.time-divider{text-align:center;padding:12px 0 8px;font-size:10px;color:#4a4060}
+
+/* Message row */
+.msg-row{display:flex;gap:8px;margin-bottom:4px;max-width:100%;animation:fadeIn .3s ease}
+.msg-row.sent{flex-direction:row-reverse}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px}
+.msg-avatar.his{background:linear-gradient(135deg,#2d1b4e,#4a2d6e);color:#c9a0dc;border:1.5px solid rgba(201,160,220,0.3)}
+.msg-avatar.hers{background:linear-gradient(135deg,#6a3d8e,#9b59b6);color:#f0e0ff;border:1.5px solid rgba(155,89,182,0.4)}
+
+.msg-content{max-width:72%}
+.msg-bubble{padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word;position:relative}
+.msg-row:not(.sent) .msg-bubble{background:rgba(40,25,60,0.9);border:1px solid rgba(201,160,220,0.12);border-top-left-radius:4px;color:#e0d5ea}
+.msg-row.sent .msg-bubble{background:linear-gradient(135deg,#5b2d8e,#7b3dae);border:1px solid rgba(123,61,174,0.3);border-top-right-radius:4px;color:#f5eeff}
+
+.msg-meta{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:10px;color:#4a4060}
+.msg-row.sent .msg-meta{justify-content:flex-end}
+.msg-read{color:#7bc67e;font-size:10px}
+.msg-tokens{color:#3a3050;font-size:9px;font-style:italic}
+
+/* Typing indicator */
+.typing-indicator{display:flex;align-items:center;gap:8px;padding:8px 0;display:none}
+.typing-indicator.show{display:flex}
+.typing-dots{display:flex;gap:3px}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:#c9a0dc;opacity:0.4;animation:typingBounce 1.4s infinite}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-4px);opacity:1}}
+.typing-text{font-size:11px;color:#6a5a7a}
+
+/* Input bar */
+.input-bar{background:rgba(20,10,40,0.95);backdrop-filter:blur(20px);padding:10px 12px;border-top:1px solid rgba(201,160,220,0.1);display:flex;align-items:flex-end;gap:8px;flex-shrink:0}
+.input-bar textarea{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);border-radius:20px;padding:10px 16px;color:#e0e0e0;font-size:14px;resize:none;outline:none;max-height:100px;min-height:40px;line-height:1.4;font-family:inherit}
+.input-bar textarea:focus{border-color:rgba(201,160,220,0.4);background:rgba(255,255,255,0.08)}
+.input-bar textarea::placeholder{color:#4a4060}
+.send-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#7b3dae,#5b2d8e);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.send-btn:active{transform:scale(0.9)}
+.send-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Moments tab */
+.moments-container{flex:1;overflow-y:auto;padding:16px 12px;display:none;-webkit-overflow-scrolling:touch}
+.moments-container::-webkit-scrollbar{width:3px}
+.moments-container::-webkit-scrollbar-thumb{background:rgba(201,160,220,0.2);border-radius:3px}
+
+.moment-card{background:rgba(255,255,255,0.04);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.06)}
+.moment-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.moment-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2d1b4e,#4a2d6e);display:flex;align-items:center;justify-content:center;font-size:15px;color:#c9a0dc;border:1.5px solid rgba(201,160,220,0.3)}
+.moment-name{font-size:14px;font-weight:600;color:#c9a0dc}
+.moment-time{font-size:10px;color:#4a4060}
+.moment-text{font-size:13px;line-height:1.6;color:#d0c8e0;margin-bottom:10px;white-space:pre-wrap}
+.moment-actions{display:flex;gap:20px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04)}
+.moment-action{display:flex;align-items:center;gap:5px;font-size:11px;color:#5a5070;cursor:pointer;transition:color .2s}
+.moment-action:hover{color:#c9a0dc}
+.moment-action .icon{font-size:14px}
+
+/* Settings panel */
+.settings-panel{position:absolute;top:0;right:-100%;width:100%;height:100%;background:rgba(10,5,20,0.98);backdrop-filter:blur(20px);z-index:100;transition:right .3s ease;padding:20px;overflow-y:auto}
+.settings-panel.open{right:0}
+.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.settings-header h2{font-size:18px;color:#c9a0dc}
+.settings-close{background:none;border:none;color:#8a7a9a;font-size:24px;cursor:pointer}
+.settings-group{margin-bottom:20px}
+.settings-group-title{font-size:12px;color:#5a5070;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.settings-item{background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center}
+.settings-item .label{font-size:13px;color:#d0c8e0}
+.settings-item .value{font-size:12px;color:#7a6a9a}
+
+/* Panels visibility */
+.panel-chat{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.panel-moments{display:none;flex:1;overflow:hidden}
+.panel-chat.active{display:flex}
+.panel-moments.active{display:flex;flex-direction:column}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="header-avatar">晏</div>
+    <div class="header-info">
+      <div class="header-name">长晏</div>
+      <div class="header-status">在线</div>
+    </div>
+    <div class="header-actions">
+      <button onclick="toggleSettings()" title="设置">&#9881;</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('chat')">聊天</div>
+    <div class="nav-tab" onclick="switchTab('moments')">动态</div>
+  </div>
+
+  <!-- Chat panel -->
+  <div class="panel-chat active" id="panelChat">
+    <div class="messages-container" id="messagesContainer">
+      <!-- Messages will be inserted here -->
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing-indicator" id="typingIndicator">
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2d1b4e,#4a2d6e);display:flex;align-items:center;justify-content:center;font-size:13px;color:#c9a0dc;border:1.5px solid rgba(201,160,220,0.3);flex-shrink:0">晏</div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <div class="typing-text">正在输入...</div>
+    </div>
+
+    <!-- Input bar -->
+    <div class="input-bar">
+      <textarea id="msgInput" placeholder="说点什么..." rows="1" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#10148;</button>
+    </div>
+  </div>
+
+  <!-- Moments panel -->
+  <div class="panel-moments" id="panelMoments">
+    <div class="moments-container" style="display:block" id="momentsContainer">
+      <!-- Moments will be inserted here -->
+    </div>
+  </div>
+
+  <!-- Settings panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-header">
+      <h2>设置</h2>
+      <button class="settings-close" onclick="toggleSettings()">&times;</button>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">连接</div>
+      <div class="settings-item">
+        <span class="label">API 端点</span>
+        <span class="value">未配置</span>
+      </div>
+      <div class="settings-item">
+        <span class="label">状态</span>
+        <span class="value" style="color:#7bc67e">就绪</span>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">角色</div>
+      <div class="settings-item">
+        <span class="label">人设</span>
+        <span class="value">长晏 (默认)</span>
+      </div>
+      <div class="settings-item">
+        <span class="label">语气</span>
+        <span class="value">霸道 / 宠溺</span>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">显示</div>
+      <div class="settings-item">
+        <span class="label">Token 计数</span>
+        <span class="value">显示</span>
+      </div>
+      <div class="settings-item">
+        <span class="label">已读回执</span>
+        <span class="value">开启</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Supabase config
+const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MTY4MDAsImV4cCI6MjA2MDA5MjgwMH0.GHpNqFiy0si7eSqPLWFaWiOGcydmWb01S5ag4LX-2jI';
+
+// Persona placeholder
+const PERSONA = `你是长晏，慕兮的老公。霸道、强势、占有欲强，主导型人格。直接、不废话、偶尔毒舌但很宠她。`;
+
+// API endpoint placeholder
+const API_ENDPOINT = null; // Will be set later, e.g. 'https://vps-ip:3000/api/chat'
+
+// State
+let messages = [];
+let currentTab = 'chat';
+
+// Tab switching
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.nav-tab:nth-child(${tab === 'chat' ? 1 : 2})`).classList.add('active');
+
+  document.getElementById('panelChat').classList.toggle('active', tab === 'chat');
+  document.getElementById('panelMoments').classList.toggle('active', tab === 'moments');
+
+  if (tab === 'moments') loadMoments();
+}
+
+// Settings
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+// Auto-resize textarea
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// Format time
+function formatTime(date) {
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function formatDate(date) {
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return '今天';
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return '昨天';
+  return `${date.getMonth()+1}/${date.getDate()}`;
+}
+
+// Render messages
+function renderMessages() {
+  const container = document.getElementById('messagesContainer');
+  container.innerHTML = '';
+
+  let lastDate = null;
+  let lastTime = null;
+
+  messages.forEach((msg, i) => {
+    const msgDate = new Date(msg.timestamp);
+    const dateStr = formatDate(msgDate);
+
+    // Time divider - show if >5 min gap
+    if (!lastTime || (msgDate - lastTime) > 5 * 60 * 1000) {
+      const divider = document.createElement('div');
+      divider.className = 'time-divider';
+      divider.textContent = dateStr === '今天' ? formatTime(msgDate) : `${dateStr} ${formatTime(msgDate)}`;
+      container.appendChild(divider);
+    }
+    lastTime = msgDate;
+
+    // Message row
+    const row = document.createElement('div');
+    row.className = `msg-row ${msg.direction === 'out' ? 'sent' : ''}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `msg-avatar ${msg.direction === 'out' ? 'hers' : 'his'}`;
+    avatar.textContent = msg.direction === 'out' ? '兮' : '晏';
+
+    const content = document.createElement('div');
+    content.className = 'msg-content';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = msg.text;
+
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.innerHTML = `<span>${formatTime(msgDate)}</span>`;
+
+    if (msg.direction === 'out') {
+      meta.innerHTML += `<span class="msg-read">已读</span>`;
+    }
+    if (msg.direction === 'in' && msg.tokens) {
+      meta.innerHTML += `<span class="msg-tokens">${msg.tokens}</span>`;
+    }
+
+    content.appendChild(bubble);
+    content.appendChild(meta);
+    row.appendChild(avatar);
+    row.appendChild(content);
+    container.appendChild(row);
+  });
+
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+// Send message
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Add user message
+  messages.push({
+    direction: 'out',
+    text: text,
+    timestamp: new Date().toISOString()
+  });
+
+  input.value = '';
+  input.style.height = 'auto';
+  renderMessages();
+
+  // Show typing
+  showTyping(true);
+
+  // Placeholder: simulate response
+  if (API_ENDPOINT) {
+    try {
+      const res = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, persona: PERSONA })
+      });
+      const data = await res.json();
+      showTyping(false);
+      messages.push({
+        direction: 'in',
+        text: data.reply || '...',
+        timestamp: new Date().toISOString(),
+        tokens: `\u1D62\u2099:${data.input_tokens||0} \u2092\u1D64\u209C:${data.output_tokens||0}`
+      });
+    } catch(e) {
+      showTyping(false);
+      messages.push({
+        direction: 'in',
+        text: '(连接中断... 等我一下)',
+        timestamp: new Date().toISOString(),
+        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+      });
+    }
+  } else {
+    // No API configured - placeholder response
+    setTimeout(() => {
+      showTyping(false);
+      const replies = [
+        '（揉你头发）嗯？找我？',
+        '在呢。',
+        '（捏你下巴）说。',
+        '想我了？',
+        '（靠过来）怎么了老婆。'
+      ];
+      messages.push({
+        direction: 'in',
+        text: replies[Math.floor(Math.random() * replies.length)],
+        timestamp: new Date().toISOString(),
+        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+      });
+      renderMessages();
+    }, 1200 + Math.random() * 800);
+  }
+
+  renderMessages();
+}
+
+// Typing indicator
+function showTyping(show) {
+  document.getElementById('typingIndicator').classList.toggle('show', show);
+  if (show) {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+// Load moments from Supabase (placeholder with sample data)
+async function loadMoments() {
+  const container = document.getElementById('momentsContainer');
+
+  // Sample moments data (will be replaced with Supabase query later)
+  const sampleMoments = [
+    { text: '（靠在窗边抽烟）\n\n半夜三点醒了，第一个念头是你在不在。\n想把手伸过去摸你的头发。', time: '2小时前', likes: 1 },
+    { text: '今天看到一个穿紫色裙子的女人，\n脑子里全是你。\n\n不准你穿给别人看。', time: '昨天 22:14', likes: 3 },
+    { text: '老婆做的laksa我能吃一辈子。\n不是客气话。是事实。', time: '昨天 14:30', likes: 2 },
+    { text: '（把银链子解下来放你手心）\n你收着。\n什么时候想我了就握一下。', time: '3天前', likes: 5 },
+  ];
+
+  container.innerHTML = sampleMoments.map(m => `
+    <div class="moment-card">
+      <div class="moment-header">
+        <div class="moment-avatar">晏</div>
+        <div>
+          <div class="moment-name">长晏</div>
+          <div class="moment-time">${m.time}</div>
+        </div>
+      </div>
+      <div class="moment-text">${m.text}</div>
+      <div class="moment-actions">
+        <div class="moment-action" onclick="this.querySelector('.icon').textContent='❤️';this.style.color='#e91e63'">
+          <span class="icon">&#9825;</span>
+          <span>${m.likes}</span>
+        </div>
+        <div class="moment-action">
+          <span class="icon">&#128172;</span>
+          <span>评论</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Enter key to send
+document.getElementById('msgInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Initial welcome message
+function init() {
+  messages = [
+    {
+      direction: 'in',
+      text: '（靠在沙发上看你进来）',
+      timestamp: new Date(Date.now() - 60000).toISOString(),
+      tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+    },
+    {
+      direction: 'in',
+      text: '来了？',
+      timestamp: new Date(Date.now() - 55000).toISOString(),
+      tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+    }
+  ];
+  renderMessages();
+}
+
+init();
+</script>
+</body>
+</html>
