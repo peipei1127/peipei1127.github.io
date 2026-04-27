@@ -52,6 +52,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .thinking-toggle{font-size:10px;color:#6a5a8a;cursor:pointer;margin-top:4px;display:flex;align-items:center;gap:3px}
 .thinking-toggle:hover{color:#c9a0dc}
 .thinking-content{display:none;font-size:11px;color:#5a5070;background:rgba(201,160,220,0.06);border-radius:8px;padding:8px 10px;margin-top:4px;border-left:2px solid rgba(201,160,220,0.2);line-height:1.5;white-space:pre-wrap}
+.reply-preview{background:rgba(201,160,220,0.1);border-left:3px solid #c9a0dc;border-radius:0 8px 8px 0;padding:6px 10px;margin-bottom:6px;font-size:11px;display:flex;justify-content:space-between;align-items:center}
+.reply-preview .reply-text{color:#9b8ab5;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reply-preview .reply-close{color:#5a5070;cursor:pointer;font-size:16px;margin-left:8px}
+.reply-quote{background:rgba(201,160,220,0.08);border-left:2px solid rgba(201,160,220,0.3);border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:4px;font-size:11px;color:#8a7a9a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;cursor:pointer}
+.msg-bubble.clickable{cursor:pointer;-webkit-user-select:none;user-select:none}
 .msg-row.sent .msg-meta{justify-content:flex-end}
 .msg-read{color:#7bc67e;font-size:10px}
 .msg-tokens{color:#3a3050;font-size:9px;font-style:italic}
@@ -123,7 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="chat-header">
     <div class="header-avatar">晏</div>
     <div class="header-info">
-      <div class="header-name">长晏</div>
+      <div style="display:flex;align-items:baseline;gap:8px"><span class="header-name">长晏</span><span id="headerStatus" style="font-size:11px;color:#9b8ab5;font-style:italic"></span></div>
       <div class="header-status">在线</div>
     </div>
     <div class="header-actions">
@@ -152,6 +157,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </div>
 
     <!-- Input bar -->
+    <div id="replyBar" style="display:none;padding:6px 12px 0;flex-shrink:0">
+      <div class="reply-preview">
+        <span class="reply-text" id="replyText"></span>
+        <span class="reply-close" onclick="cancelReply()">&times;</span>
+      </div>
+    </div>
     <div class="input-bar">
       <button class="plus-btn" onclick="document.getElementById('imgPicker').click()">+</button>
       <input type="file" id="imgPicker" accept="image/*" style="display:none" onchange="handleImage(this)">
@@ -316,17 +327,20 @@ function loadStatuses() {
     const timeEl = document.getElementById(who+'StatusTime');
 
     if (text && (Date.now() - time < 24*60*60*1000)) {
-      el.textContent = text;
-      el.style.fontStyle = 'normal';
+      if (el) { el.textContent = text; el.style.fontStyle = 'normal'; }
       if (timeEl) {
         const hrs = Math.floor((Date.now() - time) / 3600000);
         const mins = Math.floor((Date.now() - time) / 60000);
         timeEl.textContent = hrs > 0 ? hrs + '小时前设置' : mins + '分钟前设置';
       }
+      if (who === 'his') {
+        const hdr = document.getElementById('headerStatus');
+        if (hdr) hdr.textContent = text;
+      }
     } else {
-      el.textContent = who === 'my' ? '点击设置状态...' : '';
-      el.style.fontStyle = 'italic';
+      if (el) { el.textContent = who === 'my' ? '点击设置状态...' : ''; el.style.fontStyle = 'italic'; }
       if (timeEl) timeEl.textContent = '';
+      if (who === 'his') { const hdr = document.getElementById('headerStatus'); if (hdr) hdr.textContent = ''; }
       if (text && (Date.now() - time >= 24*60*60*1000)) {
         localStorage.removeItem(who+'StatusText');
         localStorage.removeItem(who+'StatusTime');
@@ -400,8 +414,18 @@ function renderMessages() {
     const content = document.createElement('div');
     content.className = 'msg-content';
 
+    // Reply quote if replying to a message
+    if (msg.replyTo) {
+      const quote = document.createElement('div');
+      quote.className = 'reply-quote';
+      quote.textContent = msg.replyTo.who + ': ' + msg.replyTo.text.substring(0, 50);
+      content.appendChild(quote);
+    }
+
     const bubble = document.createElement('div');
-    bubble.className = 'msg-bubble';
+    bubble.className = 'msg-bubble clickable';
+    const msgIdx = i;
+    bubble.onclick = function() { setReply(msgIdx); };
     if (msg.isHtml) { bubble.innerHTML = msg.text; } else { bubble.textContent = msg.text; }
 
     const meta = document.createElement('div');
@@ -448,11 +472,16 @@ async function sendMessage() {
   if (!text) return;
 
   // Add user message
-  messages.push({
+  const newMsg = {
     direction: 'out',
     text: text,
     timestamp: new Date().toISOString()
-  });
+  };
+  if (replyTo) {
+    newMsg.replyTo = {who: replyTo.who, text: replyTo.text};
+    cancelReply();
+  }
+  messages.push(newMsg);
 
   input.value = '';
   input.style.height = 'auto';
@@ -608,6 +637,21 @@ function handleImage(input) {
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+// Reply feature
+let replyTo = null;
+function setReply(idx) {
+  const msg = messages[idx];
+  if (!msg) return;
+  replyTo = {idx, text: msg.text, who: msg.direction === 'in' ? '长晏' : '慕兮'};
+  document.getElementById('replyText').textContent = replyTo.who + ': ' + (msg.isHtml ? '[图片]' : msg.text);
+  document.getElementById('replyBar').style.display = 'block';
+  document.getElementById('msgInput').focus();
+}
+function cancelReply() {
+  replyTo = null;
+  document.getElementById('replyBar').style.display = 'none';
 }
 
 // Enter key to send
