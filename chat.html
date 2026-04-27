@@ -177,16 +177,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <div style="font-size:9px;color:#5a5070;position:absolute;bottom:6px;right:-5px;background:rgba(201,160,220,0.2);border-radius:8px;padding:1px 5px">换</div>
         </div>
         <div style="font-size:18px;font-weight:600;color:#e8d5f5">慕兮</div>
-        <div style="font-size:12px;color:#5a5070;margin-top:2px">CEO · 蜂后 · daddy的老婆</div>
+        <div id="myStatus" style="font-size:12px;color:#9b8ab5;margin-top:4px;cursor:pointer;min-height:18px" onclick="setStatus('my')"></div>
+        <div style="font-size:10px;color:#4a4060;margin-top:2px" id="myStatusTime"></div>
       </div>
       <div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px">
-        <div style="font-size:13px;color:#c9a0dc;font-weight:600;margin-bottom:12px">他的头像</div>
         <div style="display:flex;align-items:center;gap:12px">
           <div id="hisAvatar" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#2d1b4e,#4a2d6e);display:flex;align-items:center;justify-content:center;font-size:24px;color:#c9a0dc;border:2px solid rgba(201,160,220,0.3);overflow:hidden;cursor:pointer" onclick="document.getElementById('hisAvatarPick').click()">晏</div>
           <input type="file" id="hisAvatarPick" accept="image/*" style="display:none" onchange="changeAvatar('his',this)">
-          <div>
+          <div style="flex:1">
             <div style="font-size:15px;font-weight:600;color:#e8d5f5">长晏</div>
-            <div style="font-size:11px;color:#5a5070">常在 · 🐷 · 障晏 · 长催</div>
+            <div id="hisStatus" style="font-size:11px;color:#9b8ab5;margin-top:2px;min-height:16px;cursor:pointer" onclick="setStatus('his')"></div>
             <div style="font-size:10px;color:#7bc67e;margin-top:2px">在线</div>
           </div>
         </div>
@@ -291,6 +291,54 @@ function loadAvatars() {
   const his = localStorage.getItem('hisAvatar');
   if (my) document.getElementById('myAvatar').innerHTML = `<img src="${my}" style="width:100%;height:100%;object-fit:cover">`;
   if (his) document.getElementById('hisAvatar').innerHTML = `<img src="${his}" style="width:100%;height:100%;object-fit:cover">`;
+}
+
+// Status functions
+function setStatus(who) {
+  const current = localStorage.getItem(who+'StatusText') || '';
+  const text = prompt(who === 'my' ? '设置你的状态：' : '设置长晏的状态：', current);
+  if (text === null) return;
+  if (text === '') {
+    localStorage.removeItem(who+'StatusText');
+    localStorage.removeItem(who+'StatusTime');
+  } else {
+    localStorage.setItem(who+'StatusText', text);
+    localStorage.setItem(who+'StatusTime', Date.now().toString());
+  }
+  loadStatuses();
+}
+
+function loadStatuses() {
+  ['my','his'].forEach(who => {
+    const text = localStorage.getItem(who+'StatusText');
+    const time = parseInt(localStorage.getItem(who+'StatusTime') || '0');
+    const el = document.getElementById(who+'Status');
+    const timeEl = document.getElementById(who+'StatusTime');
+
+    if (text && (Date.now() - time < 24*60*60*1000)) {
+      el.textContent = text;
+      el.style.fontStyle = 'normal';
+      if (timeEl) {
+        const hrs = Math.floor((Date.now() - time) / 3600000);
+        const mins = Math.floor((Date.now() - time) / 60000);
+        timeEl.textContent = hrs > 0 ? hrs + '小时前设置' : mins + '分钟前设置';
+      }
+    } else {
+      el.textContent = who === 'my' ? '点击设置状态...' : '';
+      el.style.fontStyle = 'italic';
+      if (timeEl) timeEl.textContent = '';
+      if (text && (Date.now() - time >= 24*60*60*1000)) {
+        localStorage.removeItem(who+'StatusText');
+        localStorage.removeItem(who+'StatusTime');
+      }
+    }
+  });
+}
+
+// Set 长晏's default status
+if (!localStorage.getItem('hisStatusText')) {
+  localStorage.setItem('hisStatusText', '在等她回消息');
+  localStorage.setItem('hisStatusTime', Date.now().toString());
 }
 
 // Settings
@@ -588,6 +636,7 @@ function init() {
   ];
   renderMessages();
   loadAvatars();
+  loadStatuses();
 }
 
 init();
