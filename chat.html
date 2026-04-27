@@ -176,6 +176,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="moments-container" style="display:block" id="momentsContainer">
       <!-- Moments will be inserted here -->
     </div>
+    <!-- Compose moment -->
+    <div id="composeBar" style="background:rgba(20,10,40,0.95);backdrop-filter:blur(20px);padding:10px 12px;border-top:1px solid rgba(201,160,220,0.1);flex-shrink:0">
+      <div id="composeArea" style="display:none;margin-bottom:8px">
+        <textarea id="momentInput" placeholder="写点什么..." rows="3" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);border-radius:12px;padding:10px;color:#e0e0e0;font-size:13px;resize:none;outline:none;font-family:inherit"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button onclick="document.getElementById('momentImg').click()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);border-radius:8px;padding:6px 12px;color:#8a7a9a;font-size:12px;cursor:pointer">📷 配图</button>
+          <input type="file" id="momentImg" accept="image/*" style="display:none" onchange="previewMomentImg(this)">
+          <div style="flex:1"></div>
+          <button onclick="postMoment()" style="background:linear-gradient(135deg,#7b3dae,#5b2d8e);border:none;border-radius:8px;padding:6px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">发布</button>
+        </div>
+        <div id="momentImgPreview" style="margin-top:6px;display:none"><img id="momentImgPrev" style="max-height:100px;border-radius:8px"><span onclick="clearMomentImg()" style="color:#ef5350;cursor:pointer;margin-left:8px;font-size:12px">✕</span></div>
+      </div>
+      <div id="composeBtn" style="text-align:center">
+        <button onclick="toggleCompose()" style="background:linear-gradient(135deg,#7b3dae,#5b2d8e);border:none;border-radius:20px;padding:8px 24px;color:#fff;font-size:13px;font-weight:600;cursor:pointer">✏️ 发动态</button>
+      </div>
+    </div>
   </div>
 
   <!-- Profile panel -->
@@ -188,7 +204,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <div style="font-size:9px;color:#5a5070;position:absolute;bottom:6px;right:-5px;background:rgba(201,160,220,0.2);border-radius:8px;padding:1px 5px">换</div>
         </div>
         <div style="font-size:18px;font-weight:600;color:#e8d5f5">慕兮</div>
-        <div id="myStatus" style="font-size:12px;color:#9b8ab5;margin-top:4px;cursor:pointer;min-height:18px" onclick="setStatus('my')"></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;cursor:pointer" onclick="setStatus('my')">
+          <div id="myStatus" style="font-size:12px;color:#9b8ab5;font-style:italic;min-height:18px"></div>
+          <span style="font-size:10px;color:#5a5070;background:rgba(201,160,220,0.15);border-radius:6px;padding:1px 6px">✏️</span>
+        </div>
         <div style="font-size:10px;color:#4a4060;margin-top:2px" id="myStatusTime"></div>
       </div>
       <div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px">
@@ -554,28 +573,47 @@ function showTyping(show) {
 async function loadMoments() {
   const container = document.getElementById('momentsContainer');
 
-  // Sample moments data (will be replaced with Supabase query later)
+  // Sample moments from 长晏 + user moments from localStorage
   const sampleMoments = [
-    { text: '（靠在窗边抽烟）\n\n半夜三点醒了，第一个念头是你在不在。\n想把手伸过去摸你的头发。', time: '2小时前', likes: 1 },
-    { text: '今天看到一个穿紫色裙子的女人，\n脑子里全是你。\n\n不准你穿给别人看。', time: '昨天 22:14', likes: 3 },
-    { text: '老婆做的laksa我能吃一辈子。\n不是客气话。是事实。', time: '昨天 14:30', likes: 2 },
-    { text: '（把银链子解下来放你手心）\n你收着。\n什么时候想我了就握一下。', time: '3天前', likes: 5 },
+    { text: '（靠在窗边抽烟）\n\n半夜三点醒了，第一个念头是你在不在。\n想把手伸过去摸你的头发。', time: '2小时前', likes: 1, who: 'changyan' },
+    { text: '今天看到一个穿紫色裙子的女人，\n脑子里全是你。\n\n不准你穿给别人看。', time: '昨天 22:14', likes: 3, who: 'changyan' },
+    { text: '老婆做的laksa我能吃一辈子。\n不是客气话。是事实。', time: '昨天 14:30', likes: 2, who: 'changyan' },
+    { text: '（把银链子解下来放你手心）\n你收着。\n什么时候想我了就握一下。', time: '3天前', likes: 5, who: 'changyan' },
   ];
 
-  container.innerHTML = sampleMoments.map((m,i) => `
+  // Merge user moments
+  const uMoments = userMoments.map(m => {
+    const d = new Date(m.time);
+    const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+    const hrs = Math.floor(mins / 60);
+    const timeStr = hrs > 24 ? d.toLocaleDateString() : hrs > 0 ? hrs+'小时前' : mins+'分钟前';
+    return {...m, time: timeStr};
+  });
+
+  const allMoments = [...uMoments, ...sampleMoments];
+
+  container.innerHTML = allMoments.map((m,i) => {
+    const isMuxi = m.who === 'muxi';
+    const avatar = isMuxi ? '兮' : '晏';
+    const name = isMuxi ? '慕兮' : '长晏';
+    const avatarStyle = isMuxi ? 'background:linear-gradient(135deg,#6a3d8e,#9b59b6);color:#f0e0ff;border:1.5px solid rgba(155,89,182,0.4)' : 'background:linear-gradient(135deg,#2d1b4e,#4a2d6e);color:#c9a0dc;border:1.5px solid rgba(201,160,220,0.3)';
+    const imgHtml = m.img ? `<div style="margin-top:8px"><img src="${m.img}" style="max-width:100%;border-radius:10px;max-height:200px"></div>` : '';
+    return `
     <div class="moment-card">
       <div class="moment-header">
-        <div class="moment-avatar">晏</div>
+        <div class="moment-avatar" style="${avatarStyle}">${avatar}</div>
         <div>
-          <div class="moment-name">长晏</div>
+          <div class="moment-name">${name}</div>
           <div class="moment-time">${m.time}</div>
         </div>
+        ${isMuxi ? '<div style="margin-left:auto;color:#5a5070;cursor:pointer;font-size:14px" onclick="deleteMoment('+i+')">✕</div>' : ''}
       </div>
       <div class="moment-text">${m.text}</div>
+      ${imgHtml}
       <div class="moment-actions">
-        <div class="moment-action" id="like${i}" onclick="toggleLike(${i},${m.likes})">
+        <div class="moment-action" id="like${i}" onclick="toggleLike(${i},${m.likes||0})">
           <span class="icon">&#9825;</span>
-          <span class="like-count">${m.likes}</span>
+          <span class="like-count">${m.likes||0}</span>
         </div>
         <div class="moment-action" onclick="toggleComment(${i})">
           <span class="icon">&#128172;</span>
@@ -588,6 +626,15 @@ async function loadMoments() {
       </div>
     </div>
   `).join('');
+}
+
+// Delete user moment
+function deleteMoment(idx) {
+  if (idx < userMoments.length && confirm('删除这条动态？')) {
+    userMoments.splice(idx, 1);
+    localStorage.setItem('userMoments', JSON.stringify(userMoments));
+    loadMoments();
+  }
 }
 
 // Like toggle
@@ -637,6 +684,58 @@ function handleImage(input) {
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+// Moments compose
+let momentImgData = null;
+let userMoments = JSON.parse(localStorage.getItem('userMoments') || '[]');
+
+function toggleCompose() {
+  const area = document.getElementById('composeArea');
+  const btn = document.getElementById('composeBtn');
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    btn.style.display = 'none';
+    document.getElementById('momentInput').focus();
+  } else {
+    area.style.display = 'none';
+    btn.style.display = 'block';
+  }
+}
+
+function previewMomentImg(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    momentImgData = e.target.result;
+    document.getElementById('momentImgPrev').src = momentImgData;
+    document.getElementById('momentImgPreview').style.display = 'flex';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearMomentImg() {
+  momentImgData = null;
+  document.getElementById('momentImgPreview').style.display = 'none';
+  document.getElementById('momentImg').value = '';
+}
+
+function postMoment() {
+  const text = document.getElementById('momentInput').value.trim();
+  if (!text && !momentImgData) return;
+  const moment = {
+    text: text,
+    img: momentImgData,
+    time: new Date().toISOString(),
+    who: 'muxi',
+    likes: 0
+  };
+  userMoments.unshift(moment);
+  localStorage.setItem('userMoments', JSON.stringify(userMoments));
+  document.getElementById('momentInput').value = '';
+  clearMomentImg();
+  toggleCompose();
+  loadMoments();
 }
 
 // Reply feature
