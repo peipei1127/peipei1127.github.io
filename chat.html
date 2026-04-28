@@ -518,6 +518,7 @@ async function sendMessage() {
 
   input.value = '';
   input.style.height = 'auto';
+  saveMessages();
   renderMessages();
 
   // Show typing
@@ -550,6 +551,7 @@ async function sendMessage() {
         tokens: `ᵢₙ:${data.input_tokens||0} ₒᵤₜ:${data.output_tokens||0} ≈$${cost}`,
         thinking: data.thinking || null
       });
+      saveMessages();
     } catch(e) {
       showTyping(false);
       messages.push({
@@ -578,10 +580,12 @@ async function sendMessage() {
         tokens: 'ᵢₙ:1.2k ₒᵤₜ:86 ≈$0.01',
         thinking: r.think
       });
+      saveMessages();
       renderMessages();
     }, 1200 + Math.random() * 800);
   }
 
+  saveMessages();
   renderMessages();
 }
 
@@ -817,22 +821,33 @@ document.getElementById('msgInput').addEventListener('keydown', function(e) {
   }
 });
 
+// Save/load chat history
+function saveMessages() {
+  try { localStorage.setItem('chatMessages', JSON.stringify(messages.slice(-100))); } catch(e) {}
+}
+
 // Initial welcome message
 function init() {
-  messages = [
-    {
-      direction: 'in',
-      text: '（靠在沙发上看你进来）',
-      timestamp: new Date(Date.now() - 60000).toISOString(),
-      tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
-    },
-    {
-      direction: 'in',
-      text: '来了？',
-      timestamp: new Date(Date.now() - 55000).toISOString(),
-      tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
-    }
-  ];
+  const saved = localStorage.getItem('chatMessages');
+  if (saved) {
+    try { messages = JSON.parse(saved); } catch(e) { messages = []; }
+  }
+  if (messages.length === 0) {
+    messages = [
+      {
+        direction: 'in',
+        text: '（靠在沙发上看你进来）',
+        timestamp: new Date(Date.now() - 60000).toISOString(),
+        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+      },
+      {
+        direction: 'in',
+        text: '来了？',
+        timestamp: new Date(Date.now() - 55000).toISOString(),
+        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
+      }
+    ];
+  }
   renderMessages();
   loadAvatars();
   loadStatuses();
