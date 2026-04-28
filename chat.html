@@ -689,7 +689,11 @@ function handleImage(input) {
 
 // Moments compose
 let momentImgData = null;
-let userMoments = JSON.parse(localStorage.getItem('userMoments') || '[]');
+let userMoments = [];
+try { userMoments = JSON.parse(localStorage.getItem('userMoments') || '[]'); } catch(e) { localStorage.removeItem('userMoments'); }
+
+// Reset if URL has ?reset
+if (location.search.includes('reset')) { localStorage.clear(); location.href = location.pathname; }
 
 function toggleCompose() {
   const area = document.getElementById('composeArea');
@@ -734,8 +738,10 @@ function clearMomentImg() {
 }
 
 function postMoment() {
-  const text = document.getElementById('momentInput').value.trim();
-  if (!text && !momentImgData) return;
+  const textEl = document.getElementById('momentInput');
+  if (!textEl) { alert('找不到输入框'); return; }
+  const text = textEl.value.trim();
+  if (!text && !momentImgData) { alert('请输入文字或选择图片'); return; }
   const moment = {
     text: text,
     img: momentImgData,
