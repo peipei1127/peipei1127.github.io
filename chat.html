@@ -706,13 +706,25 @@ function toggleCompose() {
 
 function previewMomentImg(input) {
   if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const img = new Image();
   const reader = new FileReader();
   reader.onload = function(e) {
-    momentImgData = e.target.result;
-    document.getElementById('momentImgPrev').src = momentImgData;
-    document.getElementById('momentImgPreview').style.display = 'flex';
+    img.onload = function() {
+      // Compress: max 400px wide, JPEG 0.6 quality
+      const canvas = document.createElement('canvas');
+      const maxW = 400;
+      const ratio = Math.min(maxW / img.width, 1);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      momentImgData = canvas.toDataURL('image/jpeg', 0.6);
+      document.getElementById('momentImgPrev').src = momentImgData;
+      document.getElementById('momentImgPreview').style.display = 'flex';
+    };
+    img.src = e.target.result;
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(file);
 }
 
 function clearMomentImg() {
@@ -732,7 +744,19 @@ function postMoment() {
     likes: 0
   };
   userMoments.unshift(moment);
-  localStorage.setItem('userMoments', JSON.stringify(userMoments));
+  try {
+    localStorage.setItem('userMoments', JSON.stringify(userMoments));
+  } catch(e) {
+    // Storage full - try without image
+    moment.img = null;
+    try {
+      localStorage.setItem('userMoments', JSON.stringify(userMoments));
+    } catch(e2) {
+      alert('存储空间不足 请删除一些旧动态');
+      userMoments.shift();
+      return;
+    }
+  }
   document.getElementById('momentInput').value = '';
   clearMomentImg();
   toggleCompose();
