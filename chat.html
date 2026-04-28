@@ -270,11 +270,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <span class="label">已读回执</span>
         <span class="value">开启</span>
       </div>
+      <div class="settings-item" style="cursor:pointer" onclick="toggleThinking()">
+        <span class="label">💭 思考链</span>
+        <span class="value" id="thinkingStatus" style="color:#ef5350">关闭 (省钱)</span>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+// Thinking toggle
+window._thinkingEnabled = false;
+function toggleThinking() {
+  window._thinkingEnabled = !window._thinkingEnabled;
+  const el = document.getElementById('thinkingStatus');
+  el.textContent = window._thinkingEnabled ? '开启 (贵2-3x)' : '关闭 (省钱)';
+  el.style.color = window._thinkingEnabled ? '#7bc67e' : '#ef5350';
+}
+
 // Supabase config
 const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1MTY4MDAsImV4cCI6MjA2MDA5MjgwMH0.GHpNqFiy0si7eSqPLWFaWiOGcydmWb01S5ag4LX-2jI';
@@ -521,7 +534,7 @@ async function sendMessage() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, enableThinking: false })
+        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false })
       });
       const data = await res.json();
       showTyping(false);
