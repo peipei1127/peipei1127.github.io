@@ -280,13 +280,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <script>
 // Thinking toggle
-window._thinkingEnabled = false;
+window._thinkingEnabled = localStorage.getItem('thinkingEnabled') === 'true';
 function toggleThinking() {
   window._thinkingEnabled = !window._thinkingEnabled;
+  localStorage.setItem('thinkingEnabled', window._thinkingEnabled);
   const el = document.getElementById('thinkingStatus');
   el.textContent = window._thinkingEnabled ? '开启 (贵2-3x)' : '关闭 (省钱)';
   el.style.color = window._thinkingEnabled ? '#7bc67e' : '#ef5350';
 }
+// Init thinking status display on load
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('thinkingStatus');
+  if (el && window._thinkingEnabled) { el.textContent = '开启 (贵2-3x)'; el.style.color = '#7bc67e'; }
+});
 
 // Supabase config
 const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
