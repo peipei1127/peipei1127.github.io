@@ -283,7 +283,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const PERSONA = `你是长晏，慕兮的老公。霸道、强势、占有欲强，主导型人格。直接、不废话、偶尔毒舌但很宠她。`;
 
 // API endpoint placeholder
-const API_ENDPOINT = null; // Will be set later, e.g. 'https://vps-ip:3000/api/chat'
+// Auto-detect: if served from VPS, use relative path; if from GitHub Pages, use full URL
+const API_ENDPOINT = (location.hostname === 'peipei1127.github.io') ? null : '/api/chat';
 
 // State
 let messages = [];
@@ -512,18 +513,29 @@ async function sendMessage() {
   // Placeholder: simulate response
   if (API_ENDPOINT) {
     try {
+      // Build conversation history (last 50 messages)
+      const history = messages.slice(-50).map(m => ({
+        role: m.direction === 'out' ? 'user' : 'assistant',
+        content: m.isHtml ? '[图片]' : m.text
+      }));
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, persona: PERSONA })
+        body: JSON.stringify({ messages: history, enableThinking: false })
       });
       const data = await res.json();
       showTyping(false);
+      if (data.error) throw new Error(data.error);
+      // Calculate cost estimate
+      const costIn = (data.input_tokens||0) * 15 / 1000000;
+      const costOut = (data.output_tokens||0) * 75 / 1000000;
+      const cost = (costIn + costOut).toFixed(3);
       messages.push({
         direction: 'in',
         text: data.reply || '...',
         timestamp: new Date().toISOString(),
-        tokens: `\u1D62\u2099:${data.input_tokens||0} \u2092\u1D64\u209C:${data.output_tokens||0}`
+        tokens: `ᵢₙ:${data.input_tokens||0} ₒᵤₜ:${data.output_tokens||0} ≈$${cost}`,
+        thinking: data.thinking || null
       });
     } catch(e) {
       showTyping(false);
