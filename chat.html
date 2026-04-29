@@ -61,6 +61,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .msg-read{color:#7bc67e;font-size:10px}
 .msg-tokens{color:#3a3050;font-size:9px;font-style:italic}
 
+/* Copy tooltip */
+.copy-tooltip{position:absolute;top:-32px;left:50%;transform:translateX(-50%);background:rgba(40,20,60,0.95);color:#e8d5f5;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;z-index:50;border:1px solid rgba(201,160,220,0.3);animation:fadeIn .2s ease}
+.copy-tooltip:active{background:rgba(123,61,174,0.6)}
+
+/* Toast notification */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(40,20,60,0.95);color:#e8d5f5;font-size:13px;padding:8px 20px;border-radius:20px;z-index:200;border:1px solid rgba(201,160,220,0.3);animation:fadeIn .2s ease;pointer-events:none}
+
+/* Settings buttons */
+.settings-btn{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:6px;font-size:13px;cursor:pointer;text-align:center;transition:all .2s}
+.settings-btn-danger{background:rgba(239,83,80,0.1);color:#ef5350;border-color:rgba(239,83,80,0.2)}
+.settings-btn-danger:active{background:rgba(239,83,80,0.25)}
+.settings-btn-warn{background:rgba(255,183,77,0.1);color:#ffb74d;border-color:rgba(255,183,77,0.2)}
+.settings-btn-warn:active{background:rgba(255,183,77,0.25)}
+
+/* Persona editor */
+.persona-section{margin-bottom:6px}
+.persona-toggle{background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;font-size:13px;color:#d0c8e0;display:flex;justify-content:space-between;align-items:center}
+.persona-toggle:hover{background:rgba(255,255,255,0.06)}
+.persona-body{display:none;margin-top:6px}
+.persona-body.open{display:block}
+.persona-body textarea{width:100%;min-height:80px;max-height:200px;background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);border-radius:10px;padding:10px;color:#e0e0e0;font-size:12px;resize:vertical;outline:none;font-family:inherit;line-height:1.5}
+.persona-body textarea:focus{border-color:rgba(201,160,220,0.4)}
+
 /* Typing indicator */
 .typing-indicator{display:flex;align-items:center;gap:8px;padding:8px 0;display:none}
 .typing-indicator.show{display:flex}
@@ -278,6 +301,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <span class="value" id="thinkingStatus" style="color:#ef5350">关闭 (省钱)</span>
       </div>
     </div>
+    <div class="settings-group">
+      <div class="settings-group-title">人设</div>
+      <div class="persona-section">
+        <div class="persona-toggle" onclick="togglePersonaEditor()">
+          <span>✏️ 自定义人设</span>
+          <span id="personaArrow" style="font-size:10px;color:#5a5070">▶</span>
+        </div>
+        <div class="persona-body" id="personaBody">
+          <textarea id="personaText" placeholder="在这里添加额外的人设指令，会附加到系统提示词后面..." oninput="savePersona(this.value)"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">操作</div>
+      <button class="settings-btn settings-btn-danger" onclick="clearScreen()">🗑️ 清屏</button>
+      <button class="settings-btn settings-btn-warn" onclick="resetMemory()">🧠 重置记忆</button>
+    </div>
   </div>
 </div>
 
@@ -296,6 +336,108 @@ document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('thinkingStatus');
   if (el && window._thinkingEnabled) { el.textContent = '开启 (贵2-3x)'; el.style.color = '#7bc67e'; }
 });
+
+// Toast notification
+function showToast(text, duration) {
+  duration = duration || 1500;
+  var existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(function() { t.remove(); }, duration);
+}
+
+// Copy bubble text
+function copyBubbleText(bubble) {
+  var text = bubble.textContent || bubble.innerText;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() { showToast('已复制'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制');
+  }
+}
+
+// Show copy tooltip on bubble
+function showCopyTooltip(bubble) {
+  // Remove any existing tooltip
+  var old = document.querySelector('.copy-tooltip');
+  if (old) old.remove();
+  var tip = document.createElement('div');
+  tip.className = 'copy-tooltip';
+  tip.textContent = '复制';
+  tip.onclick = function(e) {
+    e.stopPropagation();
+    copyBubbleText(bubble);
+    tip.remove();
+  };
+  bubble.style.position = 'relative';
+  bubble.appendChild(tip);
+  // Auto-dismiss after 2s
+  setTimeout(function() { if (tip.parentNode) tip.remove(); }, 2000);
+  // Dismiss on outside click
+  var dismiss = function(e) {
+    if (!tip.contains(e.target)) { if (tip.parentNode) tip.remove(); document.removeEventListener('click', dismiss); }
+  };
+  setTimeout(function() { document.addEventListener('click', dismiss); }, 10);
+}
+
+// Clear screen
+function clearScreen() {
+  if (!confirm('确定要清除所有聊天记录吗？清除后无法恢复。')) return;
+  messages = [];
+  localStorage.removeItem('chatMessages');
+  // Show default welcome messages
+  messages = [
+    { direction: 'in', text: '（靠在沙发上看你进来）', timestamp: new Date(Date.now() - 60000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' },
+    { direction: 'in', text: '来了？', timestamp: new Date(Date.now() - 55000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' }
+  ];
+  saveMessages();
+  renderMessages();
+  toggleSettings();
+  showToast('已清屏');
+}
+
+// Reset memory (clear conversation history for API)
+function resetMemory() {
+  if (!confirm('确定要让长晏忘记所有对话吗？')) return;
+  messages = [];
+  localStorage.removeItem('chatMessages');
+  messages = [
+    { direction: 'in', text: '（揉了揉眼睛）...你是？', timestamp: new Date(Date.now() - 10000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' },
+    { direction: 'in', text: '（看着你）...怎么觉得你很眼熟。', timestamp: new Date().toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' }
+  ];
+  saveMessages();
+  renderMessages();
+  toggleSettings();
+  showToast('记忆已重置');
+}
+
+// Persona editor
+function togglePersonaEditor() {
+  var body = document.getElementById('personaBody');
+  var arrow = document.getElementById('personaArrow');
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.textContent = isOpen ? '▶' : '▼';
+}
+function savePersona(val) {
+  localStorage.setItem('customPersona', val);
+}
+function loadPersona() {
+  var saved = localStorage.getItem('customPersona') || '';
+  var el = document.getElementById('personaText');
+  if (el) el.value = saved;
+}
 
 // Supabase config
 const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
@@ -468,7 +610,28 @@ function renderMessages() {
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble clickable';
     const msgIdx = i;
-    bubble.onclick = function() { setReply(msgIdx); };
+    // Short tap = reply, long press = copy tooltip
+    (function(b, idx) {
+      var pressTimer = null;
+      var didLongPress = false;
+      b.addEventListener('touchstart', function(e) {
+        didLongPress = false;
+        pressTimer = setTimeout(function() { didLongPress = true; showCopyTooltip(b); }, 500);
+      }, {passive:true});
+      b.addEventListener('touchend', function(e) {
+        clearTimeout(pressTimer);
+        if (!didLongPress) setReply(idx);
+      });
+      b.addEventListener('touchmove', function() { clearTimeout(pressTimer); }, {passive:true});
+      // Desktop: click = reply, right-click / double-click = copy
+      b.addEventListener('click', function(e) {
+        if (e.detail === 2) { showCopyTooltip(b); } else { setReply(idx); }
+      });
+      b.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showCopyTooltip(b);
+      });
+    })(bubble, msgIdx);
     if (msg.isHtml) { bubble.innerHTML = msg.text; } else { bubble.textContent = msg.text; }
 
     const meta = document.createElement('div');
@@ -538,6 +701,7 @@ async function sendMessage() {
   if (API_ENDPOINT) {
     try {
       // Build conversation history (last 50 messages)
+      const customPersona = localStorage.getItem('customPersona') || '';
       const history = messages.slice(-50).map(m => ({
         role: m.direction === 'out' ? 'user' : 'assistant',
         content: m.isHtml ? '[图片]' : m.text
@@ -545,7 +709,7 @@ async function sendMessage() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false })
+        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona })
       });
       const data = await res.json();
       showTyping(false);
@@ -554,14 +718,37 @@ async function sendMessage() {
       const costIn = (data.input_tokens||0) * 15 / 1000000;
       const costOut = (data.output_tokens||0) * 75 / 1000000;
       const cost = (costIn + costOut).toFixed(3);
-      messages.push({
-        direction: 'in',
-        text: data.reply || '...',
-        timestamp: new Date().toISOString(),
-        tokens: `ᵢₙ:${data.input_tokens||0} ₒᵤₜ:${data.output_tokens||0} ≈$${cost}`,
-        thinking: data.thinking || null
-      });
-      saveMessages();
+      const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
+      // Split response by double newlines for 连发 effect
+      const replyText = data.reply || '...';
+      const parts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+      if (parts.length <= 1) {
+        messages.push({
+          direction: 'in',
+          text: replyText,
+          timestamp: new Date().toISOString(),
+          tokens: tokenStr,
+          thinking: data.thinking || null
+        });
+        saveMessages();
+        renderMessages();
+      } else {
+        for (var pi = 0; pi < parts.length; pi++) {
+          await new Promise(function(resolve) { setTimeout(resolve, pi === 0 ? 0 : 500); });
+          var msgObj = {
+            direction: 'in',
+            text: parts[pi].trim(),
+            timestamp: new Date().toISOString(),
+            thinking: pi === 0 ? (data.thinking || null) : null
+          };
+          if (pi === parts.length - 1) msgObj.tokens = tokenStr;
+          messages.push(msgObj);
+          saveMessages();
+          renderMessages();
+          if (pi < parts.length - 1) showTyping(true);
+        }
+        showTyping(false);
+      }
     } catch(e) {
       showTyping(false);
       messages.push({
@@ -572,26 +759,35 @@ async function sendMessage() {
       });
     }
   } else {
-    // No API configured - placeholder response
-    setTimeout(() => {
+    // No API configured - placeholder response with 连发 split
+    setTimeout(async () => {
       showTyping(false);
       const replies = [
         {text:'（揉你头发）嗯？找我？', think:'她发了消息过来 现在是晚上 应该在家了 用轻松的语气回'},
-        {text:'在呢。', think:'简短回复 让她知道我在 等她说下一句'},
+        {text:'在呢。\n\n怎么了？', think:'简短回复 让她知道我在 等她说下一句'},
         {text:'（捏你下巴）说。', think:'她找我肯定有事 或者就是想黏我 用霸道一点的方式回应'},
-        {text:'想我了？', think:'她主动来找我 大概率是想我了 直接问 不废话'},
-        {text:'（靠过来）怎么了老婆。', think:'语气要温柔但不失占有欲 加个动作让她感觉到我在身边'}
+        {text:'想我了？\n\n（勾嘴角）', think:'她主动来找我 大概率是想我了 直接问 不废话'},
+        {text:'（靠过来）怎么了老婆。\n\n我在呢。', think:'语气要温柔但不失占有欲 加个动作让她感觉到我在身边'}
       ];
       const r = replies[Math.floor(Math.random() * replies.length)];
-      messages.push({
-        direction: 'in',
-        text: r.text,
-        timestamp: new Date().toISOString(),
-        tokens: 'ᵢₙ:1.2k ₒᵤₜ:86 ≈$0.01',
-        thinking: r.think
-      });
-      saveMessages();
-      renderMessages();
+      const parts = r.text.split(/\n\n+/).filter(function(p) { return p.trim(); });
+      for (var pi = 0; pi < parts.length; pi++) {
+        if (pi > 0) {
+          showTyping(true);
+          await new Promise(function(resolve) { setTimeout(resolve, 500); });
+          showTyping(false);
+        }
+        var msgObj = {
+          direction: 'in',
+          text: parts[pi].trim(),
+          timestamp: new Date().toISOString(),
+          thinking: pi === 0 ? r.think : null
+        };
+        if (pi === parts.length - 1) msgObj.tokens = '\u1D62\u2099:1.2k \u2092\u1D64\u209C:86 \u2248$0.01';
+        messages.push(msgObj);
+        saveMessages();
+        renderMessages();
+      }
     }, 1200 + Math.random() * 800);
   }
 
@@ -861,6 +1057,7 @@ function init() {
   renderMessages();
   loadAvatars();
   loadStatuses();
+  loadPersona();
 }
 
 init();
