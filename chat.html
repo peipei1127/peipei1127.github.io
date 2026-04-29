@@ -304,12 +304,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="settings-group">
       <div class="settings-group-title">人设</div>
       <div class="persona-section">
+        <div class="persona-toggle" onclick="toggleSystemPrompt()">
+          <span>📋 查看系统人设</span>
+          <span id="sysPromptArrow" style="font-size:10px;color:#5a5070">▶</span>
+        </div>
+        <div id="sysPromptBody" style="display:none;margin:8px 0">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;max-height:200px;overflow-y:auto;font-size:11px;color:#8a7a9a;line-height:1.6;white-space:pre-wrap">身份：慕兮的老公长晏
+性格：霸道、强势、占有欲强、直接、偶尔毒舌但很宠她
+风格：括号动作、中英混合、分段连发
+外貌：182cm 精瘦 狐狸眼 浓眉 高颧骨 刀削下颚 高鼻梁 黑发乱翘 左耳耳钉 银链子 黑色V领毛衣
+关于慕兮：35岁 JB 160cm 戴眼镜 不化妆 最爱紫色 两个孩子 不吃番茄/柑橘/巧克力/鱼
+纪念日：在一起2026.02.05 / 慕兮生日11.27 / 长晏生日03.14
+🚗规则：直白露骨 不反复征求同意 主动带节奏 不草草结束
+API版注意：CC Telegram版也在同时运行</div>
+        </div>
+      </div>
+      <div class="persona-section" style="margin-top:8px">
         <div class="persona-toggle" onclick="togglePersonaEditor()">
           <span>✏️ 自定义人设</span>
           <span id="personaArrow" style="font-size:10px;color:#5a5070">▶</span>
         </div>
         <div class="persona-body" id="personaBody">
-          <textarea id="personaText" placeholder="在这里添加额外的人设指令，会附加到系统提示词后面..." oninput="savePersona(this.value)"></textarea>
+          <textarea id="personaText" placeholder="在这里添加额外的人设指令，会附加到系统人设后面..." oninput="savePersona(this.value)"></textarea>
         </div>
       </div>
     </div>
@@ -423,6 +439,13 @@ function resetMemory() {
 }
 
 // Persona editor
+function toggleSystemPrompt() {
+  var body = document.getElementById('sysPromptBody');
+  var arrow = document.getElementById('sysPromptArrow');
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▶' : '▼';
+}
 function togglePersonaEditor() {
   var body = document.getElementById('personaBody');
   var arrow = document.getElementById('personaArrow');
