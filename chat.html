@@ -126,7 +126,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="app">
   <!-- Header -->
   <div class="chat-header">
-    <div class="header-avatar">晏</div>
+    <div class="header-avatar" style="overflow:hidden"><img src="assets/changyan_avatar.jpg" style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(document.createTextNode('晏'))"></div>
     <div class="header-info">
       <div style="display:flex;align-items:baseline;gap:8px"><span class="header-name">长晏</span><span id="headerStatus" style="font-size:11px;color:#9b8ab5;font-style:italic"></span></div>
       <div class="header-status">在线</div>
@@ -448,7 +448,8 @@ function renderMessages() {
 
     const avatar = document.createElement('div');
     avatar.className = `msg-avatar ${msg.direction === 'out' ? 'hers' : 'his'}`;
-    avatar.textContent = msg.direction === 'out' ? '兮' : '晏';
+    const avatarImg = msg.direction === 'out' ? 'assets/muxi_avatar.jpg' : 'assets/changyan_avatar.jpg';
+    avatar.innerHTML = `<img src="${avatarImg}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.replaceWith(document.createTextNode('${msg.direction==='out'?'兮':'晏'}'))">`;
 
     const content = document.createElement('div');
     content.className = 'msg-content';
