@@ -719,9 +719,19 @@ async function sendMessage() {
       const costOut = (data.output_tokens||0) * 75 / 1000000;
       const cost = (costIn + costOut).toFixed(3);
       const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
-      // Split response by double newlines for 连发 effect
+      // Split response by double newlines for 连发 effect, merge short fragments
       const replyText = data.reply || '...';
-      const parts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+      const rawParts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+      var parts = [];
+      var buffer = '';
+      for (var ri = 0; ri < rawParts.length; ri++) {
+        buffer = buffer ? buffer + '\n\n' + rawParts[ri].trim() : rawParts[ri].trim();
+        if (buffer.length >= 80 || ri === rawParts.length - 1) {
+          parts.push(buffer);
+          buffer = '';
+        }
+      }
+      if (!parts.length) parts = [replyText];
       if (parts.length <= 1) {
         messages.push({
           direction: 'in',
