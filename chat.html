@@ -1163,9 +1163,24 @@ document.getElementById('msgInput').addEventListener('keydown', function(e) {
   }
 });
 
-// Save/load chat history
+// Save/load chat history — strip imageData before saving (too large for localStorage)
 function saveMessages() {
-  try { localStorage.setItem('chatMessages', JSON.stringify(messages.slice(-100))); } catch(e) {}
+  try {
+    var toSave = messages.slice(-100).map(function(m) {
+      if (m.imageData) {
+        var copy = Object.assign({}, m);
+        delete copy.imageData;
+        // Replace inline base64 img with placeholder
+        copy.text = '<div style="background:rgba(201,160,220,0.1);border:1px solid rgba(201,160,220,0.2);border-radius:10px;padding:12px;text-align:center;color:#8a7a9a;font-size:12px">📷 图片 (刷新后不保留)</div>';
+        return copy;
+      }
+      return m;
+    });
+    localStorage.setItem('chatMessages', JSON.stringify(toSave));
+  } catch(e) {
+    // If still too large, trim more aggressively
+    try { localStorage.setItem('chatMessages', JSON.stringify(messages.slice(-50).map(function(m) { var c = Object.assign({}, m); delete c.imageData; return c; }))); } catch(e2) {}
+  }
 }
 
 // Initial welcome message
