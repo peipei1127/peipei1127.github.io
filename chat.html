@@ -750,12 +750,27 @@ async function sendMessage() {
   // Placeholder: simulate response
   if (API_ENDPOINT) {
     try {
-      // Build conversation history (last 50 messages)
+      // Build conversation history (last 50 messages), preserve vision data for images
       const customPersona = localStorage.getItem('customPersona') || '';
-      const history = messages.slice(-50).map(m => ({
-        role: m.direction === 'out' ? 'user' : 'assistant',
-        content: m.isHtml ? '[图片]' : m.text
-      }));
+      const history = messages.slice(-50).map(m => {
+        // If message has imageData, send as vision format
+        if (m.imageData && m.direction === 'out') {
+          var match = m.imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
+          if (match) {
+            return {
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: match[1], data: match[2] } },
+                { type: 'text', text: '(慕兮发了一张图片)' }
+              ]
+            };
+          }
+        }
+        return {
+          role: m.direction === 'out' ? 'user' : 'assistant',
+          content: m.isHtml ? '[图片]' : m.text
+        };
+      });
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
