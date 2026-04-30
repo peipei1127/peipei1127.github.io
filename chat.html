@@ -633,22 +633,22 @@ function renderMessages() {
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble clickable';
     const msgIdx = i;
-    // Short tap = reply, long press = copy tooltip
+    // Long press = reply, short tap = copy tooltip
     (function(b, idx) {
       var pressTimer = null;
       var didLongPress = false;
       b.addEventListener('touchstart', function(e) {
         didLongPress = false;
-        pressTimer = setTimeout(function() { didLongPress = true; showCopyTooltip(b); }, 500);
+        pressTimer = setTimeout(function() { didLongPress = true; setReply(idx); }, 500);
       }, {passive:true});
       b.addEventListener('touchend', function(e) {
         clearTimeout(pressTimer);
-        if (!didLongPress) setReply(idx);
+        if (!didLongPress) showCopyTooltip(b);
       });
       b.addEventListener('touchmove', function() { clearTimeout(pressTimer); }, {passive:true});
-      // Desktop: click = reply, right-click / double-click = copy
+      // Desktop: click = copy tooltip, double-click = reply, right-click = copy
       b.addEventListener('click', function(e) {
-        if (e.detail === 2) { showCopyTooltip(b); } else { setReply(idx); }
+        if (e.detail === 2) { setReply(idx); } else { showCopyTooltip(b); }
       });
       b.addEventListener('contextmenu', function(e) {
         e.preventDefault();
@@ -937,19 +937,86 @@ function addComment(i, input) {
   list.innerHTML += `<div class="comment-item"><span>慕兮:</span>${text}</div>`;
 }
 
-// Handle image attachment
+// Handle image attachment — send as vision message to API
 function handleImage(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
+    const dataUrl = e.target.result;
     messages.push({
       direction: 'out',
-      text: `<img src="${e.target.result}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="window.open(this.src)">`,
+      text: `<img src="${dataUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="window.open(this.src)">`,
       timestamp: new Date().toISOString(),
-      isHtml: true
+      isHtml: true,
+      imageData: dataUrl
     });
+    saveMessages();
     renderMessages();
+
+    // Send to API with vision if endpoint configured
+    if (API_ENDPOINT) {
+      showTyping(true);
+      try {
+        const customPersona = localStorage.getItem('customPersona') || '';
+        // Build history, converting image messages to vision format
+        const history = messages.slice(-50).map(m => {
+          if (m.imageData && m.direction === 'out') {
+            // Extract media type and base64 from data URL
+            const match = m.imageData.match(/^data:(image\/\w+);base64,(.+)$/);
+            if (match) {
+              return {
+                role: 'user',
+                content: [
+                  { type: 'image', source: { type: 'base64', media_type: match[1], data: match[2] } },
+                  { type: 'text', text: '(慕兮发了一张图片)' }
+                ]
+              };
+            }
+          }
+          return {
+            role: m.direction === 'out' ? 'user' : 'assistant',
+            content: m.isHtml ? '[图片]' : m.text
+          };
+        });
+        const res = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona })
+        });
+        const data = await res.json();
+        showTyping(false);
+        if (data.error) throw new Error(data.error);
+        const costIn = (data.input_tokens||0) * 15 / 1000000;
+        const costOut = (data.output_tokens||0) * 75 / 1000000;
+        const cost = (costIn + costOut).toFixed(3);
+        const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
+        const replyText = data.reply || '...';
+        const rawParts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+        var parts = [];
+        var buffer = '';
+        for (var ri = 0; ri < rawParts.length; ri++) {
+          buffer = buffer ? buffer + '\n\n' + rawParts[ri].trim() : rawParts[ri].trim();
+          if (buffer.length >= 80 || ri === rawParts.length - 1) { parts.push(buffer); buffer = ''; }
+        }
+        if (!parts.length) parts = [replyText];
+        for (var pi = 0; pi < parts.length; pi++) {
+          await new Promise(function(resolve) { setTimeout(resolve, pi === 0 ? 0 : 500); });
+          var msgObj = { direction: 'in', text: parts[pi].trim(), timestamp: new Date().toISOString(), thinking: pi === 0 ? (data.thinking || null) : null };
+          if (pi === parts.length - 1) msgObj.tokens = tokenStr;
+          messages.push(msgObj);
+          saveMessages();
+          renderMessages();
+          if (pi < parts.length - 1) showTyping(true);
+        }
+        showTyping(false);
+      } catch(e) {
+        showTyping(false);
+        messages.push({ direction: 'in', text: '(图片收到了但连接中断... 等我一下)', timestamp: new Date().toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' });
+        saveMessages();
+        renderMessages();
+      }
+    }
   };
   reader.readAsDataURL(file);
   input.value = '';
@@ -1052,11 +1119,20 @@ function cancelReply() {
   document.getElementById('replyBar').style.display = 'none';
 }
 
-// Enter key to send
+// Enter key behavior: on mobile (touch device) Enter = newline; on desktop Enter = send, Shift+Enter = newline
 document.getElementById('msgInput').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+  if (e.key === 'Enter') {
+    var isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isMobile) {
+      // Mobile: Enter = newline (default behavior), no prevention
+      return;
+    } else {
+      // Desktop: Enter = send, Shift+Enter = newline
+      if (!e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
   }
 });
 
