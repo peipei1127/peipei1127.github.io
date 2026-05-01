@@ -833,7 +833,7 @@ async function sendMessage() {
 
   // Capture which model this request is for (so tab switching doesn't cause cross-talk)
   const sendModel = currentModel;
-  const sendMessages = modelMessages[sendModel];
+  const sendMessages = messages;
 
   // Add user message
   const newMsg = {
