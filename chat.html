@@ -712,6 +712,8 @@ function formatDate(date) {
 // Render messages
 function renderMessages() {
   const container = document.getElementById('messagesContainer');
+  // Save scroll position before clearing to detect if user scrolled up
+  var wasNearBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 100;
   container.innerHTML = '';
 
   let lastDate = null;
@@ -810,9 +812,8 @@ function renderMessages() {
     container.appendChild(row);
   });
 
-  // Smart scroll: only auto-scroll if user is near the bottom (within 100px)
-  var isNearBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 100;
-  if (isNearBottom || container.scrollTop === 0) {
+  // Smart scroll: only auto-scroll if user was near the bottom before re-render
+  if (wasNearBottom) {
     container.scrollTop = container.scrollHeight;
   }
 }
