@@ -140,6 +140,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .settings-item .label{font-size:13px;color:#d0c8e0}
 .settings-item .value{font-size:12px;color:#7a6a9a}
 
+/* Model sub-tabs */
+.model-tabs{display:flex;background:rgba(15,8,30,0.95);border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.model-tab{flex:1;padding:8px 0;text-align:center;font-size:12px;color:#4a4060;cursor:pointer;transition:all .3s;position:relative;letter-spacing:0.5px}
+.model-tab.active{color:#c9a0dc;font-weight:600}
+.model-tab.active::after{content:'';position:absolute;bottom:0;left:25%;right:25%;height:2px;background:linear-gradient(90deg,#c9a0dc,#7b68ee);border-radius:1px}
+.model-tab .model-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.model-tab .model-dot.opus{background:#c9a0dc}
+.model-tab .model-dot.sonnet{background:#7b68ee}
+
+/* Plus menu */
+.plus-menu{position:absolute;bottom:60px;left:12px;background:rgba(25,12,45,0.98);border:1px solid rgba(201,160,220,0.2);border-radius:12px;padding:4px 0;z-index:60;min-width:160px;box-shadow:0 -4px 20px rgba(0,0,0,0.4);animation:fadeIn .2s ease}
+.plus-menu-item{padding:10px 16px;font-size:13px;color:#d0c8e0;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
+.plus-menu-item:hover,.plus-menu-item:active{background:rgba(201,160,220,0.1)}
+.plus-menu-backdrop{position:fixed;inset:0;z-index:55}
+
 /* Panels visibility */
 .panel-chat,.panel-moments,.panel-profile{display:none;flex-direction:column;flex:1;overflow:hidden}
 .panel-chat.active,.panel-moments.active,.panel-profile.active{display:flex !important;flex-direction:column;flex:1}
@@ -168,6 +183,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
   <!-- Chat panel -->
   <div class="panel-chat active" id="panelChat">
+    <!-- Model sub-tabs -->
+    <div class="model-tabs">
+      <div class="model-tab active" onclick="switchModel('opus')"><span class="model-dot opus"></span>Opus</div>
+      <div class="model-tab" onclick="switchModel('sonnet')"><span class="model-dot sonnet"></span>Sonnet</div>
+    </div>
+
     <div class="messages-container" id="messagesContainer">
       <!-- Messages will be inserted here -->
     </div>
@@ -186,8 +207,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <span class="reply-close" onclick="cancelReply()">&times;</span>
       </div>
     </div>
-    <div class="input-bar">
-      <button class="plus-btn" onclick="document.getElementById('imgPicker').click()">+</button>
+    <div class="input-bar" style="position:relative">
+      <button class="plus-btn" onclick="togglePlusMenu(event)">+</button>
       <input type="file" id="imgPicker" accept="image/*" style="display:none" onchange="handleImage(this)">
       <textarea id="msgInput" placeholder="说点什么..." rows="1" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#10148;</button>
@@ -435,35 +456,37 @@ function showCopyTooltip(bubble) {
   setTimeout(function() { document.addEventListener('click', dismiss); }, 10);
 }
 
-// Clear screen
+// Clear screen (keeps AI memory, just clears visible messages for current model)
 function clearScreen() {
-  if (!confirm('确定要清除所有聊天记录吗？清除后无法恢复。')) return;
+  // If called from settings panel, close it
+  var settingsOpen = document.getElementById('settingsPanel').classList.contains('open');
+  if (!confirm('确定要清除当前窗口（' + currentModel.toUpperCase() + '）的聊天记录吗？')) return;
   messages = [];
-  localStorage.removeItem('chatMessages');
-  // Show default welcome messages
+  localStorage.removeItem(getStorageKey());
   messages = [
     { direction: 'in', text: '（靠在沙发上看你进来）', timestamp: new Date(Date.now() - 60000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' },
     { direction: 'in', text: '来了？', timestamp: new Date(Date.now() - 55000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' }
   ];
   saveMessages();
   renderMessages();
-  toggleSettings();
-  showToast('已清屏');
+  if (settingsOpen) toggleSettings();
+  showToast('已清屏 (' + currentModel + ')');
 }
 
-// Reset memory (clear conversation history for API)
+// Reset memory (clear everything, AI forgets all for current model)
 function resetMemory() {
-  if (!confirm('确定要让长晏忘记所有对话吗？')) return;
+  var settingsOpen = document.getElementById('settingsPanel').classList.contains('open');
+  if (!confirm('确定要让长晏忘记' + currentModel.toUpperCase() + '窗口的所有对话吗？')) return;
   messages = [];
-  localStorage.removeItem('chatMessages');
+  localStorage.removeItem(getStorageKey());
   messages = [
     { direction: 'in', text: '（揉了揉眼睛）...你是？', timestamp: new Date(Date.now() - 10000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' },
     { direction: 'in', text: '（看着你）...怎么觉得你很眼熟。', timestamp: new Date().toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' }
   ];
   saveMessages();
   renderMessages();
-  toggleSettings();
-  showToast('记忆已重置');
+  if (settingsOpen) toggleSettings();
+  showToast('记忆已重置 (' + currentModel + ')');
 }
 
 // Persona editor
@@ -504,6 +527,75 @@ const API_ENDPOINT = (location.hostname === 'peipei1127.github.io') ? null : '/a
 // State
 let messages = [];
 let currentTab = 'chat';
+let currentModel = 'opus'; // 'opus' or 'sonnet'
+const MODEL_IDS = { opus: 'claude-opus-4-6', sonnet: 'claude-sonnet-4-6-20250514' };
+
+// Model tab switching
+function switchModel(model) {
+  if (model === currentModel) return;
+  // Save current messages before switching
+  saveMessages();
+  currentModel = model;
+  // Update tab UI
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.model-tab:nth-child(${model === 'opus' ? 1 : 2})`).classList.add('active');
+  // Load messages for this model
+  loadMessagesForModel();
+  renderMessages();
+}
+
+function getStorageKey() {
+  return 'chatMessages_' + currentModel;
+}
+
+function loadMessagesForModel() {
+  const saved = localStorage.getItem(getStorageKey());
+  if (saved) {
+    try { messages = JSON.parse(saved); } catch(e) { messages = []; }
+  } else {
+    messages = [];
+  }
+  if (messages.length === 0) {
+    messages = [
+      { direction: 'in', text: '（靠在沙发上看你进来）', timestamp: new Date(Date.now() - 60000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' },
+      { direction: 'in', text: '来了？', timestamp: new Date(Date.now() - 55000).toISOString(), tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0' }
+    ];
+  }
+}
+
+// Plus menu
+function togglePlusMenu(e) {
+  e.stopPropagation();
+  var existing = document.querySelector('.plus-menu');
+  if (existing) { closePlusMenu(); return; }
+  var backdrop = document.createElement('div');
+  backdrop.className = 'plus-menu-backdrop';
+  backdrop.onclick = closePlusMenu;
+  document.body.appendChild(backdrop);
+  var menu = document.createElement('div');
+  menu.className = 'plus-menu';
+  menu.innerHTML = '<div class="plus-menu-item" onclick="plusAction(\'image\')">📷 发图片</div>'
+    + '<div class="plus-menu-item" onclick="plusAction(\'clear\')">🗑️ 清空对话</div>'
+    + '<div class="plus-menu-item" onclick="plusAction(\'reset\')">🧠 重置记忆</div>';
+  var bar = document.querySelector('.input-bar');
+  bar.appendChild(menu);
+}
+function closePlusMenu() {
+  var menu = document.querySelector('.plus-menu');
+  var backdrop = document.querySelector('.plus-menu-backdrop');
+  if (menu) menu.remove();
+  if (backdrop) backdrop.remove();
+}
+function plusAction(action) {
+  closePlusMenu();
+  if (action === 'image') {
+    document.getElementById('imgPicker').click();
+  } else if (action === 'clear') {
+    clearScreen();
+  } else if (action === 'reset') {
+    resetMemory();
+  }
+}
 
 // Tab switching
 function switchTab(tab) {
@@ -718,8 +810,11 @@ function renderMessages() {
     container.appendChild(row);
   });
 
-  // Scroll to bottom
-  container.scrollTop = container.scrollHeight;
+  // Smart scroll: only auto-scroll if user is near the bottom (within 100px)
+  var isNearBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 100;
+  if (isNearBottom || container.scrollTop === 0) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 // Send message
@@ -775,14 +870,15 @@ async function sendMessage() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona })
+        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[currentModel] })
       });
       const data = await res.json();
       showTyping(false);
       if (data.error) throw new Error(data.error);
-      // Calculate cost estimate
-      const costIn = (data.input_tokens||0) * 15 / 1000000;
-      const costOut = (data.output_tokens||0) * 75 / 1000000;
+      // Calculate cost estimate (Opus: $15/$75 per M; Sonnet: $3/$15 per M)
+      const isOpus = currentModel === 'opus';
+      const costIn = (data.input_tokens||0) * (isOpus ? 15 : 3) / 1000000;
+      const costOut = (data.output_tokens||0) * (isOpus ? 75 : 15) / 1000000;
       const cost = (costIn + costOut).toFixed(3);
       const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
       // Split response by double newlines for 连发 effect, merge short fragments
@@ -1025,13 +1121,14 @@ function handleImage(input) {
         const res = await fetch(API_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona })
+          body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[currentModel] })
         });
         const data = await res.json();
         showTyping(false);
         if (data.error) throw new Error(data.error);
-        const costIn = (data.input_tokens||0) * 15 / 1000000;
-        const costOut = (data.output_tokens||0) * 75 / 1000000;
+        const isOpus = currentModel === 'opus';
+        const costIn = (data.input_tokens||0) * (isOpus ? 15 : 3) / 1000000;
+        const costOut = (data.output_tokens||0) * (isOpus ? 75 : 15) / 1000000;
         const cost = (costIn + costOut).toFixed(3);
         const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
         const replyText = data.reply || '...';
@@ -1181,46 +1278,32 @@ document.getElementById('msgInput').addEventListener('keydown', function(e) {
 
 // Save/load chat history — strip imageData before saving (too large for localStorage)
 function saveMessages() {
+  var key = getStorageKey();
   try {
     var toSave = messages.slice(-100).map(function(m) {
       if (m.imageData) {
         var copy = Object.assign({}, m);
         delete copy.imageData;
-        // Replace inline base64 img with placeholder
         copy.text = '<div style="background:rgba(201,160,220,0.1);border:1px solid rgba(201,160,220,0.2);border-radius:10px;padding:12px;text-align:center;color:#8a7a9a;font-size:12px">📷 图片 (刷新后不保留)</div>';
         return copy;
       }
       return m;
     });
-    localStorage.setItem('chatMessages', JSON.stringify(toSave));
+    localStorage.setItem(key, JSON.stringify(toSave));
   } catch(e) {
-    // If still too large, trim more aggressively
-    try { localStorage.setItem('chatMessages', JSON.stringify(messages.slice(-50).map(function(m) { var c = Object.assign({}, m); delete c.imageData; return c; }))); } catch(e2) {}
+    try { localStorage.setItem(key, JSON.stringify(messages.slice(-50).map(function(m) { var c = Object.assign({}, m); delete c.imageData; return c; }))); } catch(e2) {}
   }
 }
 
 // Initial welcome message
 function init() {
-  const saved = localStorage.getItem('chatMessages');
-  if (saved) {
-    try { messages = JSON.parse(saved); } catch(e) { messages = []; }
+  // Migrate old chatMessages to opus if needed
+  var oldSaved = localStorage.getItem('chatMessages');
+  if (oldSaved && !localStorage.getItem('chatMessages_opus')) {
+    localStorage.setItem('chatMessages_opus', oldSaved);
+    localStorage.removeItem('chatMessages');
   }
-  if (messages.length === 0) {
-    messages = [
-      {
-        direction: 'in',
-        text: '（靠在沙发上看你进来）',
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
-      },
-      {
-        direction: 'in',
-        text: '来了？',
-        timestamp: new Date(Date.now() - 55000).toISOString(),
-        tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
-      }
-    ];
-  }
+  loadMessagesForModel();
   renderMessages();
   loadAvatars();
   loadStatuses();
