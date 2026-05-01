@@ -831,6 +831,10 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  // Capture which model this request is for (so tab switching doesn't cause cross-talk)
+  const sendModel = currentModel;
+  const sendMessages = modelMessages[sendModel];
+
   // Add user message
   const newMsg = {
     direction: 'out',
@@ -841,13 +845,21 @@ async function sendMessage() {
     newMsg.replyTo = {who: replyTo.who, text: replyTo.text};
     cancelReply();
   }
-  messages.push(newMsg);
+  sendMessages.push(newMsg);
 
   input.value = '';
   input.style.height = 'auto';
-  saveMessages();
+  // Helper: save and render only for the correct model tab
+  function saveAndRender() {
+    try { localStorage.setItem('chatMessages_' + sendModel, JSON.stringify(sendMessages.slice(-100).map(function(m) {
+      if (m.imageData) { var c = Object.assign({}, m); delete c.imageData; c.text = '<div style="background:rgba(201,160,220,0.1);border:1px solid rgba(201,160,220,0.2);border-radius:10px;padding:12px;text-align:center;color:#8a7a9a;font-size:12px">📷 图片 (刷新后不保留)</div>'; return c; }
+      return m;
+    }))); } catch(e) {}
+    if (currentModel === sendModel) renderMessages();
+  }
   _userScrolledUp = false;
-  renderMessages(true);
+  saveAndRender();
+  if (currentModel === sendModel) renderMessages(true);
 
   // Show typing
   showTyping(true);
@@ -857,7 +869,7 @@ async function sendMessage() {
     try {
       // Build conversation history (last 50 messages), preserve vision data for images
       const customPersona = localStorage.getItem('customPersona') || '';
-      const history = messages.slice(-50).map(m => {
+      const history = sendMessages.slice(-50).map(m => {
         // If message has imageData, send as vision format
         if (m.imageData && m.direction === 'out') {
           var match = m.imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
@@ -879,13 +891,13 @@ async function sendMessage() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[currentModel] })
+        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[sendModel] })
       });
       const data = await res.json();
-      showTyping(false);
+      if (currentModel === sendModel) showTyping(false);
       if (data.error) throw new Error(data.error);
       // Calculate cost estimate (Opus: $15/$75 per M; Sonnet: $3/$15 per M)
-      const isOpus = currentModel === 'opus';
+      const isOpus = sendModel === 'opus';
       const costIn = (data.input_tokens||0) * (isOpus ? 15 : 3) / 1000000;
       const costOut = (data.output_tokens||0) * (isOpus ? 75 : 15) / 1000000;
       const cost = (costIn + costOut).toFixed(3);
@@ -904,15 +916,14 @@ async function sendMessage() {
       }
       if (!parts.length) parts = [replyText];
       if (parts.length <= 1) {
-        messages.push({
+        sendMessages.push({
           direction: 'in',
           text: replyText,
           timestamp: new Date().toISOString(),
           tokens: tokenStr,
           thinking: data.thinking || null
         });
-        saveMessages();
-        renderMessages();
+        saveAndRender();
       } else {
         for (var pi = 0; pi < parts.length; pi++) {
           await new Promise(function(resolve) { setTimeout(resolve, pi === 0 ? 0 : 500); });
@@ -923,21 +934,21 @@ async function sendMessage() {
             thinking: pi === 0 ? (data.thinking || null) : null
           };
           if (pi === parts.length - 1) msgObj.tokens = tokenStr;
-          messages.push(msgObj);
-          saveMessages();
-          renderMessages();
-          if (pi < parts.length - 1) showTyping(true);
+          sendMessages.push(msgObj);
+          saveAndRender();
+          if (pi < parts.length - 1 && currentModel === sendModel) showTyping(true);
         }
-        showTyping(false);
+        if (currentModel === sendModel) showTyping(false);
       }
     } catch(e) {
-      showTyping(false);
-      messages.push({
+      if (currentModel === sendModel) showTyping(false);
+      sendMessages.push({
         direction: 'in',
         text: '(连接中断... 等我一下)',
         timestamp: new Date().toISOString(),
         tokens: '\u1D62\u2099:0 \u2092\u1D64\u209C:0'
       });
+      saveAndRender();
     }
   } else {
     // No API configured - placeholder response with 连发 split
