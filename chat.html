@@ -210,7 +210,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="input-bar" style="position:relative">
       <button class="plus-btn" onclick="togglePlusMenu(event)">+</button>
       <input type="file" id="imgPicker" accept="image/*" style="display:none" onchange="handleImage(this)">
-      <textarea id="msgInput" placeholder="说点什么..." rows="1" oninput="autoResize(this)"></textarea>
+      <textarea id="msgInput" placeholder="说点什么..." rows="1" oninput="autoResize(this)" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#10148;</button>
     </div>
   </div>
