@@ -976,15 +976,13 @@ async function sendMessage() {
           thinking: pi === 0 ? r.think : null
         };
         if (pi === parts.length - 1) msgObj.tokens = '\u1D62\u2099:1.2k \u2092\u1D64\u209C:86 \u2248$0.01';
-        messages.push(msgObj);
-        saveMessages();
-        renderMessages();
+        sendMessages.push(msgObj);
+        saveAndRender();
       }
     }, 1200 + Math.random() * 800);
   }
 
-  saveMessages();
-  renderMessages();
+  saveAndRender();
 }
 
 // Typing indicator
