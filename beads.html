@@ -162,14 +162,11 @@ function drawGrid(){
     if(grid[r][c]){
       const hex=ALL_COLORS[grid[r][c]]||grid[r][c];
       ctx.fillStyle=hex;
-      ctx.beginPath(); ctx.arc(cx,cy,BEAD_R,0,Math.PI*2); ctx.fill();
-      // slight highlight
-      ctx.fillStyle="rgba(255,255,255,0.15)";
-      ctx.beginPath(); ctx.arc(cx-1.5,cy-1.5,BEAD_R*0.35,0,Math.PI*2); ctx.fill();
+      ctx.fillRect(c*CELL+0.5, r*CELL+0.5, CELL-1, CELL-1);
       // color code text on bead
       const code=grid[r][c];
-      ctx.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.85)":"rgba(0,0,0,0.6)";
-      ctx.font="bold 4px sans-serif";
+      ctx.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.9)":"rgba(0,0,0,0.65)";
+      ctx.font="bold 5px sans-serif";
       ctx.textAlign="center";
       ctx.textBaseline="middle";
       ctx.fillText(code,cx,cy+0.5);
@@ -475,13 +472,11 @@ function exportImage(){
     if(grid[r][c]){
       const hex=ALL_COLORS[grid[r][c]]||grid[r][c];
       ec.fillStyle=hex;
-      ec.beginPath(); ec.arc(cx2,cy2,BEAD_R,0,Math.PI*2); ec.fill();
-      ec.fillStyle="rgba(255,255,255,0.15)";
-      ec.beginPath(); ec.arc(cx2-1.5,cy2-1.5,BEAD_R*0.35,0,Math.PI*2); ec.fill();
+      ec.fillRect(c*CELL+0.5, r*CELL+0.5, CELL-1, CELL-1);
       // color code on exported bead
       const code=grid[r][c];
-      ec.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.85)":"rgba(0,0,0,0.6)";
-      ec.font="bold 4px sans-serif";
+      ec.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.9)":"rgba(0,0,0,0.65)";
+      ec.font="bold 5px sans-serif";
       ec.textAlign="center";
       ec.textBaseline="middle";
       ec.fillText(code,cx2,cy2+0.5);
