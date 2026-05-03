@@ -200,9 +200,9 @@ function drawGrid(){
   }
   // grid lines - purple thick lines every 10
   for(let i=0;i<=GRID;i++){
-    if(i%10===0){
+    if(i%5===0){
       ctx.strokeStyle="rgba(160,100,220,0.5)";
-      ctx.lineWidth=1.5;
+      ctx.lineWidth=2.5;
     } else {
       ctx.strokeStyle="rgba(0,0,0,0.08)";
       ctx.lineWidth=0.5;
@@ -538,9 +538,9 @@ function renderExportCanvas(mirrored){
   }
   // gridlines with purple thick every 10
   for(let i=0;i<=GRID;i++){
-    if(i%10===0){
+    if(i%5===0){
       ec.strokeStyle="rgba(160,100,220,0.5)";
-      ec.lineWidth=1.5;
+      ec.lineWidth=2.5;
     } else {
       ec.strokeStyle="rgba(0,0,0,0.08)";
       ec.lineWidth=0.5;
