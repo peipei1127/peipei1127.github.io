@@ -50,6 +50,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .panel-toggle{position:fixed;bottom:10px;left:10px;z-index:100;display:flex;gap:4px}
 .panel-toggle button{padding:4px 10px;border-radius:8px;border:1px solid rgba(201,160,220,0.3);background:rgba(20,10,30,0.85);color:#8a7a9a;font-size:10px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .panel-toggle button.active{color:#c9a0dc;border-color:#c9a0dc}
+
+/* Export overlay */
+.export-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px}
+.export-overlay .close-btn{position:fixed;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(201,160,220,0.4);background:rgba(20,10,30,0.9);color:#c9a0dc;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000}
+.export-overlay .close-btn:active{background:rgba(201,160,220,0.3)}
+.export-overlay .hint{color:#8a7a9a;font-size:12px;margin:10px 0;text-align:center}
+.export-overlay img{max-width:95%;height:auto;border:1px solid rgba(201,160,220,0.2);border-radius:4px;margin-bottom:16px}
+.export-overlay .label{color:#c9a0dc;font-size:14px;margin:8px 0 4px;font-weight:bold}
 </style>
 </head>
 <body>
@@ -106,7 +114,6 @@ Object.values(COLORS).flat().forEach(([c,h])=>ALL_COLORS[c]=h);
 // Helper: determine if a hex color is dark (for text contrast)
 function isColorDark(hex){
   const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  // relative luminance
   return (r*0.299+g*0.587+b*0.114)<140;
 }
 
@@ -114,6 +121,7 @@ function isColorDark(hex){
 const GRID=52;
 const CELL=22;
 const BEAD_R=9;
+const NUM_MARGIN=16; // margin for row/col numbers
 let grid=Array.from({length:GRID},()=>Array(GRID).fill(null));
 let currentColor="H7";
 let eraserMode=false;
@@ -121,12 +129,17 @@ let undoStack=[];
 let redoStack=[];
 let activeGroup="H";
 
+// Numbers to show: 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 52
+function shouldShowNumber(n){
+  return n===1||n===GRID||(n%5===0);
+}
+
 // === CANVAS ===
 const canvas=document.getElementById("gridCanvas");
 const ctx=canvas.getContext("2d");
 const wrap=document.getElementById("canvasWrap");
-const DPR=2; // high-res canvas for sharp text when zoomed
-const cw=GRID*CELL+1, ch=GRID*CELL+1;
+const DPR=2;
+const cw=GRID*CELL+1+NUM_MARGIN*2, ch=GRID*CELL+1+NUM_MARGIN*2;
 canvas.width=cw*DPR; canvas.height=ch*DPR;
 canvas.style.width=cw+"px"; canvas.style.height=ch+"px";
 ctx.scale(DPR,DPR);
@@ -156,47 +169,73 @@ function clampPan(){
 // === DRAWING ===
 function drawGrid(){
   ctx.clearRect(0,0,cw,ch);
-  // background
-  ctx.fillStyle="#c8c0cc";
+  // background for number margins
+  ctx.fillStyle="#1a0d2e";
   ctx.fillRect(0,0,cw,ch);
-  // pegs (empty cells) and placed beads
+
+  // board bg
+  ctx.save();
+  ctx.translate(NUM_MARGIN,NUM_MARGIN);
+  const gridW=GRID*CELL+1, gridH=GRID*CELL+1;
+  ctx.fillStyle="#c8c0cc";
+  ctx.fillRect(0,0,gridW,gridH);
+
+  // pegs and beads
   for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++){
-    const cx=c*CELL+CELL/2, cy=r*CELL+CELL/2;
+    const cx2=c*CELL+CELL/2, cy2=r*CELL+CELL/2;
     if(grid[r][c]){
       const hex=ALL_COLORS[grid[r][c]]||grid[r][c];
       ctx.fillStyle=hex;
       ctx.fillRect(c*CELL+0.5, r*CELL+0.5, CELL-1, CELL-1);
-      // color code text on bead
       const code=grid[r][c];
       ctx.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.9)":"rgba(0,0,0,0.65)";
       ctx.font="bold 8px sans-serif";
       ctx.textAlign="center";
       ctx.textBaseline="middle";
-      ctx.fillText(code,cx,cy+0.5);
+      ctx.fillText(code,cx2,cy2+0.5);
     } else {
-      // empty peg dot
       ctx.fillStyle="#b0a8b4";
-      ctx.beginPath(); ctx.arc(cx,cy,2.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx2,cy2,2.5,0,Math.PI*2); ctx.fill();
     }
   }
-  // grid lines - thin lines for all, thick lines every 10
+  // grid lines - purple thick lines every 10
   for(let i=0;i<=GRID;i++){
     if(i%10===0){
-      ctx.strokeStyle="rgba(0,0,0,0.3)";
+      ctx.strokeStyle="rgba(160,100,220,0.5)";
       ctx.lineWidth=1.5;
     } else {
       ctx.strokeStyle="rgba(0,0,0,0.08)";
       ctx.lineWidth=0.5;
     }
-    ctx.beginPath();ctx.moveTo(i*CELL+0.5,0);ctx.lineTo(i*CELL+0.5,ch);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,i*CELL+0.5);ctx.lineTo(cw,i*CELL+0.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(i*CELL+0.5,0);ctx.lineTo(i*CELL+0.5,gridH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*CELL+0.5);ctx.lineTo(gridW,i*CELL+0.5);ctx.stroke();
+  }
+  ctx.restore();
+
+  // Draw row/column numbers on all 4 sides
+  ctx.fillStyle="#8a7a9a";
+  ctx.font="6px sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  for(let i=1;i<=GRID;i++){
+    if(!shouldShowNumber(i)) continue;
+    const x=NUM_MARGIN+(i-1)*CELL+CELL/2;
+    const y=NUM_MARGIN+(i-1)*CELL+CELL/2;
+    // top
+    ctx.fillText(i, x, NUM_MARGIN/2);
+    // bottom
+    ctx.fillText(i, x, NUM_MARGIN+GRID*CELL+1+NUM_MARGIN/2);
+    // left
+    ctx.fillText(i, NUM_MARGIN/2, y);
+    // right
+    ctx.fillText(i, NUM_MARGIN+GRID*CELL+1+NUM_MARGIN/2, y);
   }
 }
 
 function cellAt(px,py){
   const rect=canvas.getBoundingClientRect();
-  const cx=(px-rect.left)*(cw/rect.width);
-  const cy=(py-rect.top)*(ch/rect.height);
+  const cx=(px-rect.left)*(cw/rect.width)-NUM_MARGIN;
+  const cy=(py-rect.top)*(ch/rect.height)-NUM_MARGIN;
   const col=Math.floor(cx/CELL), row=Math.floor(cy/CELL);
   if(col>=0&&col<GRID&&row>=0&&row<GRID) return [row,col];
   return null;
@@ -273,17 +312,16 @@ canvas.addEventListener("mouseup",e=>handleEnd());
 canvas.addEventListener("mouseleave",e=>handleEnd());
 
 // === TOUCH HANDLING (with zoom/pan conflict fix) ===
-let touchMode=null; // 'draw','pan','pinch','undecided'
+let touchMode=null;
 let touchStartX=0, touchStartY=0;
 let touchStartTime=0;
-let gestureJustEnded=0; // timestamp of last pinch/pan end for cooldown
-const MOVE_THRESHOLD=5; // px threshold to distinguish tap from drag
-const GESTURE_COOLDOWN=300; // ms cooldown after zoom/pan before allowing bead placement
+let gestureJustEnded=0;
+const MOVE_THRESHOLD=5;
+const GESTURE_COOLDOWN=300;
 
 canvas.addEventListener("touchstart",e=>{
   e.preventDefault();
   if(e.touches.length===2){
-    // Two fingers = pinch/zoom. Cancel any drawing in progress.
     touchMode='pinch';
     if(isDrawing){ isDrawing=false; pendingChanges=[]; }
     const t=e.touches;
@@ -292,10 +330,8 @@ canvas.addEventListener("touchstart",e=>{
     panX0=(t[0].clientX+t[1].clientX)/2; panY0=(t[0].clientY+t[1].clientY)/2;
     tx0=tx; ty0=ty;
   } else if(e.touches.length===1){
-    // Single finger - don't decide yet if it's draw or pan
     const now=Date.now();
     if(now-gestureJustEnded<GESTURE_COOLDOWN){
-      // Cooldown after pinch/pan - ignore this touch start
       touchMode=null;
       return;
     }
@@ -303,7 +339,6 @@ canvas.addEventListener("touchstart",e=>{
     touchStartY=e.touches[0].clientY;
     touchStartTime=now;
     touchMode='undecided';
-    // Store pan origin in case it becomes a pan
     panX0=e.touches[0].clientX; panY0=e.touches[0].clientY;
     tx0=tx; ty0=ty;
   }
@@ -326,9 +361,7 @@ canvas.addEventListener("touchmove",e=>{
     const dist=Math.hypot(dx,dy);
 
     if(touchMode==='undecided'&&dist>MOVE_THRESHOLD){
-      // Finger moved beyond threshold - decide: draw or pan
       if(scale>1.05){
-        // When zoomed in, check if touch is on canvas for drawing
         const c=cellAt(e.touches[0].clientX,e.touches[0].clientY);
         if(c){
           touchMode='draw';
@@ -337,7 +370,6 @@ canvas.addEventListener("touchmove",e=>{
           touchMode='pan';
         }
       } else {
-        // At default zoom, single-finger drag draws
         touchMode='draw';
         handleStart(touchStartX,touchStartY);
       }
@@ -359,7 +391,6 @@ canvas.addEventListener("touchend",e=>{
     gestureJustEnded=Date.now();
   }
   if(touchMode==='undecided'){
-    // Finger lifted without moving beyond threshold = single tap
     const now=Date.now();
     if(now-gestureJustEnded>=GESTURE_COOLDOWN){
       handleStart(touchStartX,touchStartY);
@@ -368,7 +399,6 @@ canvas.addEventListener("touchend",e=>{
   } else if(touchMode==='draw'){
     handleEnd();
   }
-  // If there are still touches remaining (e.g. one finger lifted from pinch), don't reset yet
   if(e.touches.length===0){
     touchMode=null;
   }
@@ -398,15 +428,15 @@ function buildPalette(){
     t.onclick=()=>{activeGroup=g; buildPalette()};
     tabs.appendChild(t);
   });
-  const grid=document.getElementById("colorGrid");
-  grid.innerHTML="";
+  const grid2=document.getElementById("colorGrid");
+  grid2.innerHTML="";
   (COLORS[activeGroup]||[]).forEach(([code,hex])=>{
     const sw=document.createElement("div");
     sw.className="color-swatch"+(code===currentColor&&!eraserMode?" selected":"");
     const isDark=isColorDark(hex);
     sw.innerHTML=`<div class="circle" style="background:${hex};${isDark?"box-shadow:0 0 0 1px rgba(255,255,255,0.2) inset":""}"></div><div class="code">${code}</div>`;
     sw.onclick=()=>{currentColor=code;eraserMode=false;updateCurrent();buildPalette();document.getElementById("btnEraser").classList.remove("active")};
-    grid.appendChild(sw);
+    grid2.appendChild(sw);
   });
 }
 function updateCurrent(){
@@ -423,7 +453,7 @@ function updateStats(){
   }
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const inner=document.getElementById("statsInner");
-  inner.innerHTML=sorted.map(([code,cnt])=>`<div class="stat-item"><div class="dot" style="background:${ALL_COLORS[code]||code}"></div><div class="info">${code} ×${cnt}</div></div>`).join("");
+  inner.innerHTML=sorted.map(([code,cnt])=>`<div class="stat-item"><div class="dot" style="background:${ALL_COLORS[code]||code}"></div><div class="info">${code} x${cnt}</div></div>`).join("");
   document.getElementById("statsTotal").textContent=total?`共 ${total} 颗豆 · ${sorted.length} 种颜色`:"还没有放豆子哦~";
 }
 
@@ -447,10 +477,12 @@ document.getElementById("btnClear").onclick=()=>{
 document.getElementById("btnExport").onclick=exportImage;
 
 // === EXPORT ===
-function exportImage(){
-  const pad=20, statH=120;
+function renderExportCanvas(mirrored){
+  const pad=24, numM=16, statH=140;
+  const gridW=GRID*CELL+1, gridH=GRID*CELL+1;
+  const totalGridW=gridW+numM*2, totalGridH=gridH+numM*2;
   const exp=document.createElement("canvas");
-  const ew=cw+pad*2, eh=ch+pad*2+statH;
+  const ew=totalGridW+pad*2, eh=totalGridH+pad*2+statH;
   exp.width=ew; exp.height=eh;
   const ec=exp.getContext("2d");
 
@@ -458,49 +490,83 @@ function exportImage(){
   ec.fillStyle="#1a0d2e";
   ec.fillRect(0,0,ew,eh);
 
-  // title
+  // title/label
   ec.fillStyle="#c9a0dc";
   ec.font="bold 14px sans-serif";
   ec.textAlign="center";
-  ec.fillText("小vivi の 拼豆设计器",ew/2,pad-4);
+  ec.fillText(mirrored?"镜像 (Mirror)":"正面 (Normal)",ew/2,pad-4);
 
-  // draw grid content
+  // draw grid area
   ec.save();
-  ec.translate(pad,pad);
+  ec.translate(pad+numM,pad+numM);
+
+  if(mirrored){
+    ec.translate(gridW,0);
+    ec.scale(-1,1);
+  }
+
   // board bg
   ec.fillStyle="#c8c0cc";
-  ec.fillRect(0,0,cw,ch);
+  ec.fillRect(0,0,gridW,gridH);
   for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++){
     const cx2=c*CELL+CELL/2, cy2=r*CELL+CELL/2;
     if(grid[r][c]){
       const hex=ALL_COLORS[grid[r][c]]||grid[r][c];
       ec.fillStyle=hex;
       ec.fillRect(c*CELL+0.5, r*CELL+0.5, CELL-1, CELL-1);
-      // color code on exported bead
       const code=grid[r][c];
       ec.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.9)":"rgba(0,0,0,0.65)";
       ec.font="bold 8px sans-serif";
       ec.textAlign="center";
       ec.textBaseline="middle";
-      ec.fillText(code,cx2,cy2+0.5);
+      if(mirrored){
+        ec.save();
+        ec.translate(cx2,cy2+0.5);
+        ec.scale(-1,1);
+        ec.fillText(code,0,0);
+        ec.restore();
+      } else {
+        ec.fillText(code,cx2,cy2+0.5);
+      }
     } else {
       ec.fillStyle="#b0a8b4";
       ec.beginPath(); ec.arc(cx2,cy2,2.5,0,Math.PI*2); ec.fill();
     }
   }
-  // gridlines with thick every 10
+  // gridlines with purple thick every 10
   for(let i=0;i<=GRID;i++){
     if(i%10===0){
-      ec.strokeStyle="rgba(0,0,0,0.3)";
+      ec.strokeStyle="rgba(160,100,220,0.5)";
       ec.lineWidth=1.5;
     } else {
       ec.strokeStyle="rgba(0,0,0,0.08)";
       ec.lineWidth=0.5;
     }
-    ec.beginPath();ec.moveTo(i*CELL+0.5,0);ec.lineTo(i*CELL+0.5,ch);ec.stroke();
-    ec.beginPath();ec.moveTo(0,i*CELL+0.5);ec.lineTo(cw,i*CELL+0.5);ec.stroke();
+    ec.beginPath();ec.moveTo(i*CELL+0.5,0);ec.lineTo(i*CELL+0.5,gridH);ec.stroke();
+    ec.beginPath();ec.moveTo(0,i*CELL+0.5);ec.lineTo(gridW,i*CELL+0.5);ec.stroke();
   }
   ec.restore();
+
+  // Row/col numbers (not mirrored - always readable)
+  ec.fillStyle="#8a7a9a";
+  ec.font="6px sans-serif";
+  ec.textAlign="center";
+  ec.textBaseline="middle";
+  for(let i=1;i<=GRID;i++){
+    if(!shouldShowNumber(i)) continue;
+    const x=pad+numM+(i-1)*CELL+CELL/2;
+    const y=pad+numM+(i-1)*CELL+CELL/2;
+    // For mirrored, flip column numbers
+    const colLabel=mirrored?(GRID-i+1):i;
+    // top
+    ec.fillText(colLabel, x, pad+numM/2);
+    // bottom
+    ec.fillText(colLabel, x, pad+numM+gridH+numM/2);
+    // left
+    ec.fillText(i, pad+numM/2, y);
+    // right
+    ec.fillText(i, pad+numM+gridW+numM/2, y);
+  }
 
   // stats
   const counts={};let total=0;
@@ -508,7 +574,7 @@ function exportImage(){
     if(grid[r][c]){counts[grid[r][c]]=(counts[grid[r][c]]||0)+1;total++;}
   }
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  const statY=ch+pad+16;
+  const statY=totalGridH+pad+24;
   ec.font="11px sans-serif";
   ec.textAlign="left";
   let sx=pad, sy=statY;
@@ -517,7 +583,7 @@ function exportImage(){
     ec.fillStyle=ALL_COLORS[code]||code;
     ec.beginPath();ec.arc(sx+5,sy-3,5,0,Math.PI*2);ec.fill();
     ec.fillStyle="#c9a0dc";
-    ec.fillText(`${code}×${cnt}`,sx+14,sy);
+    ec.fillText(`${code}x${cnt}`,sx+14,sy);
     sx+=65;
   });
   ec.fillStyle="#5a4a6a";
@@ -534,11 +600,47 @@ function exportImage(){
   ec.fillText("小vivi",ew-pad,eh-24);
   ec.restore();
 
-  // download
-  const link=document.createElement("a");
-  link.download="小vivi拼豆设计.png";
-  link.href=exp.toDataURL("image/png");
-  link.click();
+  return exp;
+}
+
+function exportImage(){
+  const normalCanvas=renderExportCanvas(false);
+  const mirrorCanvas=renderExportCanvas(true);
+
+  // Create overlay
+  const overlay=document.createElement("div");
+  overlay.className="export-overlay";
+
+  const closeBtn=document.createElement("button");
+  closeBtn.className="close-btn";
+  closeBtn.textContent="X";
+  closeBtn.onclick=()=>document.body.removeChild(overlay);
+  overlay.appendChild(closeBtn);
+
+  const hint=document.createElement("div");
+  hint.className="hint";
+  hint.textContent="长按图片可保存到相册 (iPad) / 右键另存为 (电脑)";
+  overlay.appendChild(hint);
+
+  // Normal image
+  const label1=document.createElement("div");
+  label1.className="label";
+  label1.textContent="正面";
+  overlay.appendChild(label1);
+  const img1=document.createElement("img");
+  img1.src=normalCanvas.toDataURL("image/png");
+  overlay.appendChild(img1);
+
+  // Mirror image
+  const label2=document.createElement("div");
+  label2.className="label";
+  label2.textContent="镜像";
+  overlay.appendChild(label2);
+  const img2=document.createElement("img");
+  img2.src=mirrorCanvas.toDataURL("image/png");
+  overlay.appendChild(img2);
+
+  document.body.appendChild(overlay);
 }
 
 // === SAVE/LOAD ===
