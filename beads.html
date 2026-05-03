@@ -581,26 +581,41 @@ function renderExportCanvas(mirrored){
   ec.font="11px sans-serif";
   ec.textAlign="left";
   let sx=pad, sy=statY;
-  const boxW=58, boxH=16, boxR=4, boxGap=4;
+  const halfW=30, boxH=16, boxR=4, boxGap=4, boxW=halfW*2;
   sorted.forEach(([code,cnt])=>{
     if(sx+boxW>ew-pad){sx=pad;sy+=boxH+boxGap;}
-    // rounded rectangle background with bead color
     const hex=ALL_COLORS[code]||code;
+    const top=sy-boxH+2, bot=sy+2, midX=sx+halfW;
+    // left half: colored background with color code
     ec.fillStyle=hex;
     ec.beginPath();
-    ec.moveTo(sx+boxR,sy-boxH+2);ec.lineTo(sx+boxW-boxR,sy-boxH+2);ec.quadraticCurveTo(sx+boxW,sy-boxH+2,sx+boxW,sy-boxH+2+boxR);
-    ec.lineTo(sx+boxW,sy+2-boxR);ec.quadraticCurveTo(sx+boxW,sy+2,sx+boxW-boxR,sy+2);
-    ec.lineTo(sx+boxR,sy+2);ec.quadraticCurveTo(sx,sy+2,sx,sy+2-boxR);
-    ec.lineTo(sx,sy-boxH+2+boxR);ec.quadraticCurveTo(sx,sy-boxH+2,sx+boxR,sy-boxH+2);
+    ec.moveTo(sx+boxR,top);ec.lineTo(midX,top);ec.lineTo(midX,bot);
+    ec.lineTo(sx+boxR,bot);ec.quadraticCurveTo(sx,bot,sx,bot-boxR);
+    ec.lineTo(sx,top+boxR);ec.quadraticCurveTo(sx,top,sx+boxR,top);
     ec.closePath();ec.fill();
-    // border
-    ec.strokeStyle="rgba(201,160,220,0.4)";ec.lineWidth=0.5;ec.stroke();
-    // text inside
-    ec.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.95)":"rgba(0,0,0,0.75)";
+    // right half: white background with count
+    ec.fillStyle="#ffffff";
+    ec.beginPath();
+    ec.moveTo(midX,top);ec.lineTo(sx+boxW-boxR,top);ec.quadraticCurveTo(sx+boxW,top,sx+boxW,top+boxR);
+    ec.lineTo(sx+boxW,bot-boxR);ec.quadraticCurveTo(sx+boxW,bot,sx+boxW-boxR,bot);
+    ec.lineTo(midX,bot);ec.closePath();ec.fill();
+    // border around whole box
+    ec.strokeStyle="rgba(160,100,220,0.4)";ec.lineWidth=0.5;
+    ec.beginPath();
+    ec.moveTo(sx+boxR,top);ec.lineTo(sx+boxW-boxR,top);ec.quadraticCurveTo(sx+boxW,top,sx+boxW,top+boxR);
+    ec.lineTo(sx+boxW,bot-boxR);ec.quadraticCurveTo(sx+boxW,bot,sx+boxW-boxR,bot);
+    ec.lineTo(sx+boxR,bot);ec.quadraticCurveTo(sx,bot,sx,bot-boxR);
+    ec.lineTo(sx,top+boxR);ec.quadraticCurveTo(sx,top,sx+boxR,top);
+    ec.closePath();ec.stroke();
+    // left text: color code
+    ec.fillStyle=isColorDark(hex)?"#fff":"#333";
     ec.font="bold 9px sans-serif";
-    ec.textAlign="center";
-    ec.textBaseline="middle";
-    ec.fillText(`${code} x${cnt}`,sx+boxW/2,sy-boxH/2+2);
+    ec.textAlign="center";ec.textBaseline="middle";
+    ec.fillText(code,sx+halfW/2,top+boxH/2);
+    // right text: count
+    ec.fillStyle="#333";
+    ec.font="bold 9px sans-serif";
+    ec.fillText(cnt,midX+halfW/2,top+boxH/2);
     sx+=boxW+boxGap;
   });
   ec.fillStyle="#5a4a6a";
