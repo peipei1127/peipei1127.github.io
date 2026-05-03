@@ -479,7 +479,7 @@ document.getElementById("btnExport").onclick=exportImage;
 // === EXPORT ===
 function renderExportCanvas(mirrored){
   const EDPR=3; // export at 3x resolution for crisp saved images
-  const pad=24, numM=16, statH=140;
+  const pad=24, numM=16, statH=200;
   const gridW=GRID*CELL+1, gridH=GRID*CELL+1;
   const totalGridW=gridW+numM*2, totalGridH=gridH+numM*2;
   const exp=document.createElement("canvas");
@@ -581,7 +581,7 @@ function renderExportCanvas(mirrored){
   ec.font="11px sans-serif";
   ec.textAlign="left";
   let sx=pad, sy=statY;
-  const halfW=30, boxH=16, boxR=4, boxGap=4, boxW=halfW*2;
+  const halfW=42, boxH=22, boxR=5, boxGap=5, boxW=halfW*2;
   sorted.forEach(([code,cnt])=>{
     if(sx+boxW>ew-pad){sx=pad;sy+=boxH+boxGap;}
     const hex=ALL_COLORS[code]||code;
@@ -609,12 +609,12 @@ function renderExportCanvas(mirrored){
     ec.closePath();ec.stroke();
     // left text: color code
     ec.fillStyle=isColorDark(hex)?"#fff":"#333";
-    ec.font="bold 9px sans-serif";
+    ec.font="bold 12px sans-serif";
     ec.textAlign="center";ec.textBaseline="middle";
     ec.fillText(code,sx+halfW/2,top+boxH/2);
     // right text: count
     ec.fillStyle="#333";
-    ec.font="bold 9px sans-serif";
+    ec.font="bold 12px sans-serif";
     ec.fillText(cnt,midX+halfW/2,top+boxH/2);
     sx+=boxW+boxGap;
   });
