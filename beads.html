@@ -581,13 +581,27 @@ function renderExportCanvas(mirrored){
   ec.font="11px sans-serif";
   ec.textAlign="left";
   let sx=pad, sy=statY;
+  const boxW=58, boxH=16, boxR=4, boxGap=4;
   sorted.forEach(([code,cnt])=>{
-    if(sx+60>ew-pad){sx=pad;sy+=18;}
-    ec.fillStyle=ALL_COLORS[code]||code;
-    ec.beginPath();ec.arc(sx+5,sy-3,5,0,Math.PI*2);ec.fill();
-    ec.fillStyle="#c9a0dc";
-    ec.fillText(`${code}x${cnt}`,sx+14,sy);
-    sx+=65;
+    if(sx+boxW>ew-pad){sx=pad;sy+=boxH+boxGap;}
+    // rounded rectangle background with bead color
+    const hex=ALL_COLORS[code]||code;
+    ec.fillStyle=hex;
+    ec.beginPath();
+    ec.moveTo(sx+boxR,sy-boxH+2);ec.lineTo(sx+boxW-boxR,sy-boxH+2);ec.quadraticCurveTo(sx+boxW,sy-boxH+2,sx+boxW,sy-boxH+2+boxR);
+    ec.lineTo(sx+boxW,sy+2-boxR);ec.quadraticCurveTo(sx+boxW,sy+2,sx+boxW-boxR,sy+2);
+    ec.lineTo(sx+boxR,sy+2);ec.quadraticCurveTo(sx,sy+2,sx,sy+2-boxR);
+    ec.lineTo(sx,sy-boxH+2+boxR);ec.quadraticCurveTo(sx,sy-boxH+2,sx+boxR,sy-boxH+2);
+    ec.closePath();ec.fill();
+    // border
+    ec.strokeStyle="rgba(201,160,220,0.4)";ec.lineWidth=0.5;ec.stroke();
+    // text inside
+    ec.fillStyle=isColorDark(hex)?"rgba(255,255,255,0.95)":"rgba(0,0,0,0.75)";
+    ec.font="bold 9px sans-serif";
+    ec.textAlign="center";
+    ec.textBaseline="middle";
+    ec.fillText(`${code} x${cnt}`,sx+boxW/2,sy-boxH/2+2);
+    sx+=boxW+boxGap;
   });
   ec.fillStyle="#5a4a6a";
   ec.font="10px sans-serif";
