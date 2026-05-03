@@ -478,13 +478,16 @@ document.getElementById("btnExport").onclick=exportImage;
 
 // === EXPORT ===
 function renderExportCanvas(mirrored){
+  const EDPR=3; // export at 3x resolution for crisp saved images
   const pad=24, numM=16, statH=140;
   const gridW=GRID*CELL+1, gridH=GRID*CELL+1;
   const totalGridW=gridW+numM*2, totalGridH=gridH+numM*2;
   const exp=document.createElement("canvas");
   const ew=totalGridW+pad*2, eh=totalGridH+pad*2+statH;
-  exp.width=ew; exp.height=eh;
+  exp.width=ew*EDPR; exp.height=eh*EDPR;
+  exp.style.width=ew+"px"; exp.style.height=eh+"px";
   const ec=exp.getContext("2d");
+  ec.scale(EDPR,EDPR);
 
   // background
   ec.fillStyle="#1a0d2e";
