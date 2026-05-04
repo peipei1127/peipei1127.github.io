@@ -782,15 +782,25 @@ function renderExportCanvas(mirrored){
   ec.fillStyle="#c9a0dc";
   ec.font="bold 14px sans-serif";
   ec.textAlign="center";
-  ec.fillText(`共 ${total} 颗豆 · ${sorted.length} 种颜色`,ew/2,eh-14);
+  ec.fillText(`MARD色号 · 共 ${total} 颗豆 · ${sorted.length} 种颜色`,ew/2,eh-14);
 
-  // watermark
+  // watermark — tiled across whole canvas
   ec.save();
-  ec.globalAlpha=0.25;
+  ec.globalAlpha=0.08;
   ec.fillStyle="#c9a0dc";
-  ec.font="bold 16px sans-serif";
-  ec.textAlign="right";
-  ec.fillText("小vivi",ew-pad,eh-24);
+  ec.font="bold 28px sans-serif";
+  ec.textAlign="center";
+  ec.textBaseline="middle";
+  const wmStepX=220, wmStepY=160;
+  for(let wy=wmStepY/2; wy<eh; wy+=wmStepY){
+    for(let wx=wmStepX/2; wx<ew; wx+=wmStepX){
+      ec.save();
+      ec.translate(wx,wy);
+      ec.rotate(-Math.PI/9);
+      ec.fillText("小vivi",0,0);
+      ec.restore();
+    }
+  }
   ec.restore();
 
   return exp;
