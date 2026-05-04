@@ -784,16 +784,20 @@ function renderExportCanvas(mirrored){
   ec.textAlign="center";
   ec.fillText(`MARD色号 · 共 ${total} 颗豆 · ${sorted.length} 种颜色`,ew/2,eh-14);
 
-  // watermark — tiled across whole canvas
+  // watermark — tiled across the grid area only
   ec.save();
-  ec.globalAlpha=0.08;
+  const gridX0=pad+numM, gridY0=pad+numM;
+  ec.beginPath();
+  ec.rect(gridX0,gridY0,gridW,gridH);
+  ec.clip();
+  ec.globalAlpha=0.12;
   ec.fillStyle="#c9a0dc";
   ec.font="bold 28px sans-serif";
   ec.textAlign="center";
   ec.textBaseline="middle";
-  const wmStepX=220, wmStepY=160;
-  for(let wy=wmStepY/2; wy<eh; wy+=wmStepY){
-    for(let wx=wmStepX/2; wx<ew; wx+=wmStepX){
+  const wmStepX=180, wmStepY=130;
+  for(let wy=gridY0+wmStepY/2; wy<gridY0+gridH; wy+=wmStepY){
+    for(let wx=gridX0+wmStepX/2; wx<gridX0+gridW; wx+=wmStepX){
       ec.save();
       ec.translate(wx,wy);
       ec.rotate(-Math.PI/9);
