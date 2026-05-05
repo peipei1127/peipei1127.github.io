@@ -860,7 +860,7 @@ async function sendMessage() {
 
   // Reset debounce timer — wait for user to finish 连发
   if (_sendDebounceTimer) clearTimeout(_sendDebounceTimer);
-  showTyping(false);
+  showTyping(true, '等你说完...');
   _sendDebounceTimer = setTimeout(function() {
     _sendDebounceTimer = null;
     _triggerAIResponse();
@@ -999,8 +999,15 @@ async function _triggerAIResponse() {
 }
 
 // Typing indicator
-function showTyping(show) {
+var _waitingPhrases = ['等你说完...','还有吗？','嗯 我在听','你继续','说完了？','...','我等着呢','别急 慢慢打'];
+function showTyping(show, customText) {
   document.getElementById('typingIndicator').classList.toggle('show', show);
+  var textEl = document.querySelector('.typing-text');
+  if (show && textEl) {
+    textEl.textContent = customText === '等你说完...'
+      ? _waitingPhrases[Math.floor(Math.random() * _waitingPhrases.length)]
+      : (customText || '正在输入...');
+  }
   if (show) {
     const container = document.getElementById('messagesContainer');
     container.scrollTop = container.scrollHeight;
