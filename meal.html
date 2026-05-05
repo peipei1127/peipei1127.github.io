@@ -103,7 +103,7 @@ canvas{width:100%!important;height:100%!important}
     <div class="sum-card"><div class="sum-num cal-num" id="totalCal">0</div><div class="sum-label">热量 kcal</div></div>
     <div class="sum-card"><div class="sum-num pro-num" id="totalPro">0</div><div class="sum-label">蛋白质 g<br><span style="font-size:8px;color:#64b5f6">目标≥50</span></div></div>
     <div class="sum-card"><div class="sum-num carb-num" id="totalCarb">0</div><div class="sum-label">碳水 g<br><span style="font-size:8px;color:#ce93d8">目标≤90</span></div></div>
-    <div class="sum-card"><div class="sum-num fat-num" id="totalFat">0</div><div class="sum-label">脂肪 g</div></div>
+    <div class="sum-card"><div class="sum-num fat-num" id="totalFat">0</div><div class="sum-label">脂肪 g<br><span style="font-size:8px;color:#ff8a65">目标≤54</span></div></div>
   </div>
 
   <!-- Record panel -->
@@ -320,6 +320,9 @@ async function loadMeals(){
   // Color protein based on target (50g)
   const proEl=document.getElementById('totalPro');
   proEl.style.color=totPro>=50?'#4caf50':totPro>=35?'#64b5f6':'#ff8a65';
+  // Color fat based on target (54g)
+  const fatEl=document.getElementById('totalFat');
+  fatEl.style.color=totFat>54?'#ef5350':totFat>45?'#ffd54f':'#ff8a65';
 
   const labels={breakfast:'🌅 早餐',lunch:'☀️ 午餐',dinner:'🌙 晚餐',snack:'🍪 零食'};
   let html='';
