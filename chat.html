@@ -830,15 +830,15 @@ function renderMessages(forceScroll) {
   }
 }
 
+// Debounce timer for user 连发
+var _sendDebounceTimer = null;
+var _sendDebounceMs = 15000;
+
 // Send message
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const text = input.value.trim();
   if (!text) return;
-
-  // Capture which model this request is for (so tab switching doesn't cause cross-talk)
-  const sendModel = currentModel;
-  const sendMessages = messages;
 
   // Add user message
   const newMsg = {
@@ -850,11 +850,28 @@ async function sendMessage() {
     newMsg.replyTo = {who: replyTo.who, text: replyTo.text};
     cancelReply();
   }
-  sendMessages.push(newMsg);
+  messages.push(newMsg);
 
   input.value = '';
   input.style.height = 'auto';
-  // Helper: save and render only for the correct model tab
+  _userScrolledUp = false;
+  saveMessages();
+  renderMessages(true);
+
+  // Reset debounce timer — wait for user to finish 连发
+  if (_sendDebounceTimer) clearTimeout(_sendDebounceTimer);
+  showTyping(false);
+  _sendDebounceTimer = setTimeout(function() {
+    _sendDebounceTimer = null;
+    _triggerAIResponse();
+  }, _sendDebounceMs);
+}
+
+// Actual AI response logic (called after debounce)
+async function _triggerAIResponse() {
+  const sendModel = currentModel;
+  const sendMessages = messages;
+
   function saveAndRender() {
     try { localStorage.setItem('chatMessages_' + sendModel, JSON.stringify(sendMessages.slice(-100).map(function(m) {
       if (m.imageData) { var c = Object.assign({}, m); delete c.imageData; c.text = '<div style="background:rgba(201,160,220,0.1);border:1px solid rgba(201,160,220,0.2);border-radius:10px;padding:12px;text-align:center;color:#8a7a9a;font-size:12px">📷 图片 (刷新后不保留)</div>'; return c; }
@@ -862,9 +879,6 @@ async function sendMessage() {
     }))); } catch(e) {}
     if (currentModel === sendModel) renderMessages();
   }
-  _userScrolledUp = false;
-  saveAndRender();
-  if (currentModel === sendModel) renderMessages(true);
 
   // Show typing
   showTyping(true);
