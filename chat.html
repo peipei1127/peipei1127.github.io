@@ -909,8 +909,11 @@ async function sendMessage() {
       const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
       // Split response by double newlines for 连发 effect, merge short fragments
       const replyText = data.reply || '...';
-      var parts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
-      if (!parts.length) parts = [replyText];
+      var rawParts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+      if (!rawParts.length) rawParts = [replyText];
+      var maxParts = 5;
+      var parts = rawParts.slice(0, maxParts);
+      if (rawParts.length > maxParts) parts[maxParts-1] = rawParts.slice(maxParts-1).join('\n\n');
       if (parts.length <= 1) {
         sendMessages.push({
           direction: 'in',
@@ -1146,8 +1149,11 @@ function handleImage(input) {
         const cost = (costIn + costOut).toFixed(3);
         const tokenStr = '\u1D62\u2099:' + (data.input_tokens||0) + ' \u2092\u1D64\u209C:' + (data.output_tokens||0) + ' \u2248$' + cost;
         const replyText = data.reply || '...';
-        var parts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
-        if (!parts.length) parts = [replyText];
+        var rawParts = replyText.split(/\n\n+/).filter(function(p) { return p.trim(); });
+        if (!rawParts.length) rawParts = [replyText];
+        var maxParts = 5;
+        var parts = rawParts.slice(0, maxParts);
+        if (rawParts.length > maxParts) parts[maxParts-1] = rawParts.slice(maxParts-1).join('\n\n');
         for (var pi = 0; pi < parts.length; pi++) {
           await new Promise(function(resolve) { setTimeout(resolve, pi === 0 ? 0 : 500); });
           var msgObj = { direction: 'in', text: parts[pi].trim(), timestamp: new Date().toISOString(), thinking: pi === 0 ? (data.thinking || null) : null };
