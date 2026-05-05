@@ -416,18 +416,22 @@ function showToast(text, duration) {
 // Copy bubble text
 function copyBubbleText(bubble) {
   var text = bubble.textContent || bubble.innerText;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(function() { showToast('已复制'); });
-  } else {
+  function fallbackCopy() {
     var ta = document.createElement('textarea');
     ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
     document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
+    ta.focus();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e) {}
     document.body.removeChild(ta);
-    showToast('已复制');
+    if (ok) { showToast('已复制'); } else { showToast('长按文字手动复制'); }
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText && location.protocol === 'https:') {
+    navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
   }
 }
 
