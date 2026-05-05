@@ -831,6 +831,72 @@ function renderMessages(forceScroll) {
   }
 }
 
+// Append only the last message without re-rendering everything (no jitter)
+function appendLastMessage(shouldScroll) {
+  var container = document.getElementById('messagesContainer');
+  var msg = messages[messages.length - 1];
+  if (!msg) return;
+  var i = messages.length - 1;
+  var msgDate = new Date(msg.timestamp);
+
+  var row = document.createElement('div');
+  row.className = 'msg-row ' + (msg.direction === 'out' ? 'sent' : '');
+
+  var avatar = document.createElement('div');
+  avatar.className = 'msg-avatar ' + (msg.direction === 'out' ? 'hers' : 'his');
+  var avatarImg = msg.direction === 'out' ? 'assets/muxi_avatar.jpg' : 'assets/changyan_avatar.jpg';
+  avatar.innerHTML = '<img src="'+avatarImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.replaceWith(document.createTextNode(\''+(msg.direction==='out'?'兮':'晏')+'\'))">';
+
+  var content = document.createElement('div');
+  content.className = 'msg-content';
+
+  if (msg.replyTo) {
+    var quote = document.createElement('div');
+    quote.className = 'reply-quote';
+    quote.textContent = msg.replyTo.who + ': ' + msg.replyTo.text.substring(0, 50);
+    content.appendChild(quote);
+  }
+
+  var bubble = document.createElement('div');
+  bubble.className = 'msg-bubble clickable';
+  (function(b, idx) {
+    var pressTimer = null, didLongPress = false;
+    b.addEventListener('touchstart', function() { didLongPress = false; pressTimer = setTimeout(function() { didLongPress = true; setReply(idx); }, 500); }, {passive:true});
+    b.addEventListener('touchend', function() { clearTimeout(pressTimer); if (!didLongPress) showCopyTooltip(b); });
+    b.addEventListener('touchmove', function() { clearTimeout(pressTimer); }, {passive:true});
+    b.addEventListener('click', function(e) { if (e.detail === 2) { setReply(idx); } else { showCopyTooltip(b); } });
+    b.addEventListener('contextmenu', function(e) { e.preventDefault(); showCopyTooltip(b); });
+  })(bubble, i);
+  if (msg.isHtml) { bubble.innerHTML = msg.text; } else { bubble.textContent = msg.text; }
+
+  var meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.innerHTML = '<span>'+formatTime(msgDate)+'</span>';
+  if (msg.direction === 'out') meta.innerHTML += '<span class="msg-read">已读</span>';
+  if (msg.direction === 'in' && msg.tokens) meta.innerHTML += '<span class="msg-tokens">'+msg.tokens+'</span>';
+
+  content.appendChild(bubble);
+  content.appendChild(meta);
+  if (msg.direction === 'in' && msg.thinking) {
+    var toggle = document.createElement('div');
+    toggle.className = 'thinking-toggle';
+    toggle.innerHTML = '💭 <span>查看思考过程</span>';
+    var thinkDiv = document.createElement('div');
+    thinkDiv.className = 'thinking-content';
+    thinkDiv.textContent = msg.thinking;
+    toggle.onclick = function() { var s = thinkDiv.style.display === 'block'; thinkDiv.style.display = s ? 'none' : 'block'; toggle.querySelector('span').textContent = s ? '查看思考过程' : '收起'; };
+    content.appendChild(toggle);
+    content.appendChild(thinkDiv);
+  }
+  row.appendChild(avatar);
+  row.appendChild(content);
+  container.appendChild(row);
+
+  if (shouldScroll && !_userScrolledUp) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
 // Debounce timer for user 连发
 var _sendDebounceTimer = null;
 var _sendDebounceMs = 15000;
@@ -949,11 +1015,11 @@ async function _triggerAIResponse() {
           };
           if (pi === parts.length - 1) msgObj.tokens = tokenStr;
           sendMessages.push(msgObj);
-          _noAutoScroll = pi < parts.length - 1;
-          saveAndRender();
-          _noAutoScroll = false;
-          if (pi < parts.length - 1 && currentModel === sendModel) showTyping(true);
+          var isLast = pi === parts.length - 1;
+          appendLastMessage(isLast);
+          if (!isLast && currentModel === sendModel) showTyping(true);
         }
+        saveMessages();
         if (currentModel === sendModel) showTyping(false);
       }
     } catch(e) {
@@ -993,10 +1059,9 @@ async function _triggerAIResponse() {
         };
         if (pi === parts.length - 1) msgObj.tokens = '\u1D62\u2099:1.2k \u2092\u1D64\u209C:86 \u2248$0.01';
         sendMessages.push(msgObj);
-        _noAutoScroll = pi < parts.length - 1;
-        saveAndRender();
-        _noAutoScroll = false;
+        appendLastMessage(pi === parts.length - 1);
       }
+      saveMessages();
     }, 1200 + Math.random() * 800);
   }
 
