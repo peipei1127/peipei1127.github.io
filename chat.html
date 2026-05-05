@@ -974,14 +974,29 @@ async function _triggerAIResponse() {
           content: m.isHtml ? '[图片]' : m.text
         };
       });
-      const res = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[sendModel] })
-      });
-      const data = await res.json();
+      var data = null;
+      var maxRetries = 2;
+      for (var attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          var res = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: history, enableThinking: window._thinkingEnabled || false, customPersona: customPersona, model: MODEL_IDS[sendModel] })
+          });
+          data = await res.json();
+          if (data.error) throw new Error(data.error);
+          break;
+        } catch(retryErr) {
+          if (attempt < maxRetries) {
+            if (currentModel === sendModel) showTyping(true, 'reconnecting...');
+            await new Promise(function(r) { setTimeout(r, 2000); });
+            if (currentModel === sendModel) showTyping(true);
+            continue;
+          }
+          throw retryErr;
+        }
+      }
       if (currentModel === sendModel) showTyping(false);
-      if (data.error) throw new Error(data.error);
       // Calculate cost estimate (Opus: $15/$75 per M; Sonnet: $3/$15 per M)
       const isOpus = sendModel === 'opus';
       const costIn = (data.input_tokens||0) * (isOpus ? 15 : 3) / 1000000;
