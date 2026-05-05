@@ -153,7 +153,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .plus-menu{position:absolute;bottom:60px;left:12px;background:rgba(25,12,45,0.98);border:1px solid rgba(201,160,220,0.2);border-radius:12px;padding:4px 0;z-index:60;min-width:160px;box-shadow:0 -4px 20px rgba(0,0,0,0.4);animation:fadeIn .2s ease}
 .plus-menu-item{padding:10px 16px;font-size:13px;color:#d0c8e0;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
 .plus-menu-item:hover,.plus-menu-item:active{background:rgba(201,160,220,0.1)}
-.plus-menu-backdrop{position:fixed;inset:0;z-index:55}
 
 /* Panels visibility */
 .panel-chat,.panel-moments,.panel-profile{display:none;flex-direction:column;flex:1;overflow:hidden}
@@ -568,33 +567,39 @@ function togglePlusMenu(e) {
   e.stopPropagation();
   var existing = document.querySelector('.plus-menu');
   if (existing) { closePlusMenu(); return; }
-  var backdrop = document.createElement('div');
-  backdrop.className = 'plus-menu-backdrop';
-  backdrop.onclick = closePlusMenu;
-  document.body.appendChild(backdrop);
   var menu = document.createElement('div');
   menu.className = 'plus-menu';
-  menu.innerHTML = '<div class="plus-menu-item" onclick="plusAction(\'image\')">📷 发图片</div>'
-    + '<div class="plus-menu-item" onclick="plusAction(\'clear\')">🗑️ 清空对话</div>'
-    + '<div class="plus-menu-item" onclick="plusAction(\'reset\')">🧠 重置记忆</div>';
+  var items = [
+    {icon:'📷', label:'发图片', action:function(){document.getElementById('imgPicker').click();}},
+    {icon:'🗑️', label:'清空对话', action:function(){setTimeout(clearScreen,200);}},
+    {icon:'🧠', label:'重置记忆', action:function(){setTimeout(resetMemory,200);}}
+  ];
+  items.forEach(function(item){
+    var el = document.createElement('div');
+    el.className = 'plus-menu-item';
+    el.textContent = item.icon + ' ' + item.label;
+    el.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      ev.preventDefault();
+      closePlusMenu();
+      item.action();
+    });
+    menu.appendChild(el);
+  });
   var bar = document.querySelector('.input-bar');
   bar.appendChild(menu);
+  setTimeout(function(){
+    document.addEventListener('click', _closePlusMenuOnce);
+  }, 50);
+}
+function _closePlusMenuOnce(e) {
+  closePlusMenu();
+  document.removeEventListener('click', _closePlusMenuOnce);
 }
 function closePlusMenu() {
   var menu = document.querySelector('.plus-menu');
-  var backdrop = document.querySelector('.plus-menu-backdrop');
   if (menu) menu.remove();
-  if (backdrop) backdrop.remove();
-}
-function plusAction(action) {
-  closePlusMenu();
-  if (action === 'image') {
-    document.getElementById('imgPicker').click();
-  } else if (action === 'clear') {
-    setTimeout(clearScreen, 150);
-  } else if (action === 'reset') {
-    setTimeout(resetMemory, 150);
-  }
+  document.removeEventListener('click', _closePlusMenuOnce);
 }
 
 // Tab switching
