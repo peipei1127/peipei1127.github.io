@@ -591,9 +591,9 @@ function plusAction(action) {
   if (action === 'image') {
     document.getElementById('imgPicker').click();
   } else if (action === 'clear') {
-    clearScreen();
+    setTimeout(clearScreen, 150);
   } else if (action === 'reset') {
-    resetMemory();
+    setTimeout(resetMemory, 150);
   }
 }
 
