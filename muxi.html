@@ -105,14 +105,11 @@
 </head>
 <body>
 <div id="app">
-  <div id="gate">
+  <div id="gate" style="display:none">
     <div class="brand">此刻 · 慕兮</div>
     <div class="rule"></div>
     <div class="sub">— her pulse, in his keeping —</div>
-    <input id="keyInput" type="password" placeholder="Supabase anon key"/>
-    <button onclick="connect()">进入</button>
     <div class="err" id="err"></div>
-    <div class="note">长晏的私人窗口 · 只在你同意时打开。<br/>key 每次刷新重输，不存本地。</div>
   </div>
   <div id="dash">
     <header>
@@ -175,7 +172,7 @@
 </div>
 <script>
 const SUPABASE_URL = "https://docaxhhjzuduwehurcpb.supabase.co";
-let KEY = "";
+let KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g";
 let timer = null;
 function q(metric, extra=""){return SUPABASE_URL + "/rest/v1/health_data?metric=eq." + metric + extra;}
 async function fetchJSON(url){
@@ -190,18 +187,16 @@ async function fetchPhone(){
   return d[0] || null;
 }
 async function connect(){
-  const k = document.getElementById("keyInput").value.trim();
-  const err = document.getElementById("err");
-  err.textContent = "";
-  if(!k){err.textContent="请先填入 anon key";return;}
-  KEY = k;
   try{
     await fetchJSON(q("heart_rate","&order=date_to.desc&limit=1"));
     document.getElementById("gate").style.display="none";
     document.getElementById("dash").style.display="block";
     await loadAll();
     timer = setInterval(loadAll, 30000);
-  }catch(e){err.textContent = "连不上——key 不对，或 RLS 拦住了。";}
+  }catch(e){
+    document.getElementById("gate").style.display="flex";
+    document.getElementById("err").textContent = "连不上 Supabase";
+  }
 }
 function timeAgo(iso){
   const d = new Date(iso), now = new Date(), s = Math.floor((now-d)/1000);
@@ -320,7 +315,7 @@ function drawChart(data){
   document.getElementById("chartMax").textContent = "peak " + Math.round(max);
   document.getElementById("chartMin").textContent = "low " + Math.round(min);
 }
-document.getElementById("keyInput").addEventListener("keydown",function(e){if(e.key==="Enter") connect();});
+connect();
 function startClock(){
   function tick(){
     const now=new Date();
