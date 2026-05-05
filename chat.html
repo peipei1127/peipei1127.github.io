@@ -416,23 +416,21 @@ function showToast(text, duration) {
 // Copy bubble text
 function copyBubbleText(bubble) {
   var text = bubble.textContent || bubble.innerText;
-  function fallbackCopy() {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.setSelectionRange(0, ta.value.length);
-    var ok = false;
-    try { ok = document.execCommand('copy'); } catch(e) {}
-    document.body.removeChild(ta);
-    if (ok) { showToast('已复制'); } else { showToast('长按文字手动复制'); }
-  }
+  // Try clipboard API first (HTTPS only)
   if (navigator.clipboard && navigator.clipboard.writeText && location.protocol === 'https:') {
-    navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(fallbackCopy);
-  } else {
-    fallbackCopy();
+    navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { selectBubbleText(bubble); });
+    return;
   }
+  // On HTTP/iOS: select the text so native copy menu appears
+  selectBubbleText(bubble);
+}
+function selectBubbleText(bubble) {
+  var range = document.createRange();
+  range.selectNodeContents(bubble);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  showToast('已选中 — 点"拷贝"');
 }
 
 // Show copy tooltip on bubble
