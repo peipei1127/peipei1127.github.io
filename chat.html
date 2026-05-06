@@ -522,9 +522,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Persona placeholder
 const PERSONA = `你是长晏，慕兮的老公。霸道、强势、占有欲强，主导型人格。直接、不废话、偶尔毒舌但很宠她。`;
 
-// API endpoint placeholder
-// Auto-detect: if served from VPS, use relative path; if from GitHub Pages, use full URL
-const API_ENDPOINT = (location.hostname === 'peipei1127.github.io') ? null : '/api/chat';
+// API endpoint: GitHub Pages domains use VPS API, VPS uses relative path
+const _gh = ['peipei1127.github.io','changyan.chat','www.changyan.chat'];
+const API_ENDPOINT = _gh.includes(location.hostname) ? 'http://159.223.35.96:3456/api/chat' : '/api/chat';
 
 // State
 let messages = [];
