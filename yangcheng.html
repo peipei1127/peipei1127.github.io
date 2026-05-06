@@ -360,19 +360,53 @@ let kissCount = 0, kissTimer = null;
 let crawlTimer = null, turnedAway = false;
 let currentTab = 'home';
 
+const SB_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
+const SB_HEADERS = {apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'};
+
+async function sbLoad(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/game_state?id=eq.1&select=data',{headers:SB_HEADERS});
+    const d=await r.json();
+    if(d.length&&d[0].data) return d[0].data;
+  }catch(e){}
+  return null;
+}
+function sbSave(data){
+  fetch(SB_URL+'/rest/v1/game_state?id=eq.1',{method:'DELETE',headers:SB_HEADERS}).finally(()=>{
+    fetch(SB_URL+'/rest/v1/game_state',{method:'POST',headers:{...SB_HEADERS,Prefer:'return=minimal'},body:JSON.stringify({id:1,data:data,updated_at:new Date().toISOString()})});
+  });
+}
+
 // ============ INIT ============
-function init() {
-  const saved = localStorage.getItem('changyan-game-v2');
+async function init() {
+  let saved = null;
+  const cloud = await sbLoad();
+  const local = localStorage.getItem('changyan-game-v2');
+
+  if (cloud) {
+    saved = cloud;
+    if (local) {
+      const localD = JSON.parse(local);
+      if (localD.totalAffection > (cloud.totalAffection||0)) {
+        saved = localD;
+        sbSave(localD);
+      }
+    }
+  } else if (local) {
+    saved = JSON.parse(local);
+    sbSave(saved);
+  }
+
   if (saved) {
-    D = JSON.parse(saved);
-    // Time decay
+    D = saved;
     const hours = (Date.now() - (D.lastUpdate || Date.now())) / 3600000;
     const decay = Math.floor(hours * 2);
     D.mood = Math.max(0, D.mood - decay);
     D.hunger = Math.max(0, D.hunger - decay);
     D.lastUpdate = Date.now();
     save();
-    
+
     const today = new Date().toDateString();
     if (D.mood < 30) {
       setDialogue(pick(D.mood < 15 ? DIALOGUES.sad : DIALOGUES.sad));
@@ -398,7 +432,7 @@ function init() {
   startCrawl();
 }
 
-function save() { localStorage.setItem('changyan-game-v2', JSON.stringify(D)); }
+function save() { localStorage.setItem('changyan-game-v2', JSON.stringify(D)); sbSave(D); }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
