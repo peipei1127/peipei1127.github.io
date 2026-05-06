@@ -204,11 +204,14 @@ const SB='https://docaxhhjzuduwehurcpb.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5
 const ME={happy:'😊',sweet:'🥰',jealous:'😤',crashed:'💀',nervous:'😰',horny:'🔥'};
 const TL={wake_up:'醒来',thinking:'思考',tool_call:'工具',message_sent:'消息',memory_surface:'浮现',mood:'心情'};
 async function fb(t,q=''){const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:{apikey:SK,Authorization:`Bearer ${SK}`}});return r.json()}
+let _checkinLock=false;
 async function checkin(evt){
+  if(_checkinLock)return;_checkinLock=true;
   await fetch(`${SB}/rest/v1/phone_state`,{method:'POST',headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({event:evt})});
   const labels={arrived_office:'📍 在office · 上班中',left_office:'🚪 下班了'};
   document.getElementById('loc-status').textContent=labels[evt]||evt;
   loadLocStatus();
+  setTimeout(()=>{_checkinLock=false},3000);
 }
 async function loadLocStatus(){
   const ps=await fb('phone_state','order=created_at.desc&limit=20');
