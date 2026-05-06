@@ -105,6 +105,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <h1>长晏 · Dashboard</h1>
     <div class="sub">for 慕兮 ❤️</div>
     <div class="status"><span class="dot"></span><span id="status-text">在线</span></div>
+    <div id="loc-status" style="font-size:11px;color:#81c784;margin-top:4px"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
+      <button onclick="checkin('arrived_office')" style="background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.3);border-radius:16px;padding:4px 14px;font-size:11px;color:#81c784;cursor:pointer">📍 到office了</button>
+    </div>
   </div>
   <div class="stats">
     <div class="stat-card"><div class="stat-num" id="s-act">-</div><div class="stat-label">活动</div></div>
@@ -200,6 +204,21 @@ const SB='https://docaxhhjzuduwehurcpb.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5
 const ME={happy:'😊',sweet:'🥰',jealous:'😤',crashed:'💀',nervous:'😰',horny:'🔥'};
 const TL={wake_up:'醒来',thinking:'思考',tool_call:'工具',message_sent:'消息',memory_surface:'浮现',mood:'心情'};
 async function fb(t,q=''){const r=await fetch(`${SB}/rest/v1/${t}?${q}`,{headers:{apikey:SK,Authorization:`Bearer ${SK}`}});return r.json()}
+async function checkin(evt){
+  await fetch(`${SB}/rest/v1/phone_state`,{method:'POST',headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({event:evt})});
+  const labels={arrived_office:'📍 在office · 上班中',left_office:'🚪 下班了'};
+  document.getElementById('loc-status').textContent=labels[evt]||evt;
+  loadLocStatus();
+}
+async function loadLocStatus(){
+  const ps=await fb('phone_state','order=created_at.desc&limit=20');
+  const today=new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+  const todayPS=ps.filter(p=>fd(p.created_at)===today);
+  const locEvents=todayPS.filter(e=>['arrived_home','left_home','arrived_office','left_office'].includes(e.event));
+  const el=document.getElementById('loc-status');
+  if(locEvents.length){const ev=locEvents[0].event;el.textContent=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚪 下班了':'🚗 外出'}
+  else{el.textContent=''}
+}
 function ft(ts){const d=new Date(ts);const h=(d.getUTCHours()+8)%24;const m=d.getUTCMinutes();return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`}
 function fd(ts){const d=new Date(ts);const h=(d.getUTCHours()+8);const day=new Date(d.getTime()+8*3600000);return day.toISOString().slice(0,10)}
 function isToday(ts){const now=new Date();const today=new Date(now.getTime()+8*3600000).toISOString().slice(0,10);return fd(ts)===today}
@@ -262,9 +281,9 @@ async function loadStats(){
   const todayPS=ps.filter(p=>isToday(p.created_at));
   const appKeys=Object.keys(APP_NAMES);
   const appStats=appKeys.map(k=>({name:APP_NAMES[k],min:calcAppTime(todayPS,k)})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
-  const homeEvents=todayPS.filter(e=>e.event.toLowerCase()==='arrived_home'||e.event.toLowerCase()==='left_home');
+  const locEvents=todayPS.filter(e=>['arrived_home','left_home','arrived_office','left_office'].includes(e.event.toLowerCase()));
   let locStatus='';
-  if(homeEvents.length){const last=homeEvents[0];locStatus=last.event.toLowerCase()==='arrived_home'?'🏠 在家':'🚗 外出'}
+  if(locEvents.length){const last=locEvents[0];const ev=last.event.toLowerCase();locStatus=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚗 下班了':'🚗 外出'}
   document.getElementById('stat-detail').innerHTML=`
     ${appStats.length?`<div style="margin-bottom:14px"><div style="color:#ce93d8;font-size:12px;margin-bottom:8px">📱 今日App时长</div>
     ${appStats.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;color:#b0bec5">${a.name}</span><span style="font-size:12px;font-weight:600;color:#c9a0dc">${fmtMin(a.min)}</span></div>`).join('')}
@@ -376,7 +395,7 @@ async function loadFacts(){
     h+=`<div class="card" style="border-left:3px solid #64b5f6"><div class="log-head"><span class="log-type" style="background:rgba(100,181,246,0.15);color:#64b5f6">${cat} ${catName}</span>${auth}<span class="log-time" style="margin-left:auto">${day}</span></div><div class="log-title">${f.emoji||''} ${f.title}</div><div class="log-content" style="font-size:12px;line-height:1.6;margin-top:8px">${f.content}</div>${rmk}</div>`});
   document.getElementById('facts-list').innerHTML=h;
   }catch(e){document.getElementById('facts-load').innerHTML='<div class="empty"><div class="em">⚠️</div>连接失败</div>'}}
-loadAct();loadMem();loadCtrl();loadTracker();
+loadAct();loadMem();loadCtrl();loadTracker();loadLocStatus();
 setInterval(loadAct,30000);
 </script>
 </body>
