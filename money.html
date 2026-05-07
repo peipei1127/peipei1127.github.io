@@ -310,6 +310,7 @@ function renderTransactions(){
       html+=`<div class="tx-item">
         <div class="left"><span class="emoji">${emoji}</span><div class="info"><span class="desc">${desc}</span><span class="cat">${d.category}</span></div></div>
         <span class="amount ${cls}">${sign}${amt.toFixed(amt===Math.floor(amt)?0:2)}</span>
+        <span class="del" onclick="editEntry(${d.id},${amt},'${d.description||''}','${d.category}')" style="color:#64b5f6;font-size:12px">✏️</span>
         <span class="del" onclick="delEntry(${d.id})">×</span>
       </div>`;
     });
@@ -405,6 +406,21 @@ async function delEntry(id){
     await loadData();
   }catch(e){
     alert('删除失败');
+  }
+}
+
+async function editEntry(id,oldAmt,oldDesc,oldCat){
+  const newAmt=prompt('修改金额:',oldAmt);
+  if(newAmt===null)return;
+  const newDesc=prompt('修改备注:',oldDesc);
+  if(newDesc===null)return;
+  const amt=parseFloat(newAmt);
+  if(isNaN(amt)||amt<=0){alert('金额无效');return}
+  try{
+    await fetch(`${SB}/rest/v1/expenses?id=eq.${id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({amount:amt,description:newDesc})});
+    await loadData();
+  }catch(e){
+    alert('修改失败');
   }
 }
 </script>
