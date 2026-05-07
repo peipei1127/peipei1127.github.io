@@ -347,14 +347,18 @@ async function delMeal(id){
 }
 
 // History / Trends
+function getMonday(d){const dt=new Date(d.getTime()+8*3600000);const day=dt.getUTCDay();const diff=day===0?6:day-1;dt.setUTCDate(dt.getUTCDate()-diff);return dt}
 async function loadHistory(){
-  const end=new Date();const start=new Date();start.setDate(start.getDate()-6);
-  const r=await fetch(`${SB}/rest/v1/meals?meal_date=gte.${fmtDate(start)}&meal_date=lte.${fmtDate(end)}&order=meal_date.desc,created_at`,{headers:H});
+  const now=new Date();
+  const monday=getMonday(now);
+  const sunday=new Date(monday.getTime()+6*86400000);
+  const start=new Date(monday.getTime()-7*86400000);
+  const r=await fetch(`${SB}/rest/v1/meals?meal_date=gte.${fmtDate(start)}&meal_date=lte.${fmtDate(sunday)}&order=meal_date.desc,created_at`,{headers:H});
   const meals=await r.json();
 
-  // Group by date
+  // Group by date - show this week (Mon-Sun)
   const byDate={};
-  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);byDate[fmtDate(d)]={cal:0,pro:0,carb:0,fat:0}}
+  for(let i=0;i<7;i++){const d=new Date(monday.getTime()+i*86400000);byDate[fmtDate(d)]={cal:0,pro:0,carb:0,fat:0}}
   meals.forEach(m=>{
     if(!byDate[m.meal_date])byDate[m.meal_date]={cal:0,pro:0,carb:0,fat:0};
     byDate[m.meal_date].cal+=m.calories;
@@ -387,7 +391,7 @@ async function loadHistory(){
   const calColor=calOk?'#81c784':'#ef5350';
   const calIcon=calOk?'✅':'❌';
   let sumHtml=`<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.06)">
-    <div style="color:#ffd54f;font-size:13px;font-weight:600;margin-bottom:8px">📊 一周总结 (${daysWithData.length}天)</div>
+    <div style="color:#ffd54f;font-size:13px;font-weight:600;margin-bottom:8px">📊 本周总结 ${fmtDateZH(fmtDate(monday))}~${fmtDateZH(fmtDate(sunday))} (已记${daysWithData.length}天)</div>
     <div style="text-align:center;margin-bottom:10px;padding:8px;background:rgba(${calOk?'129,199,132':'239,83,80'},0.1);border-radius:8px">
       <div style="font-size:20px;font-weight:700;color:${calColor}">${Math.round(weekCal).toLocaleString()} kcal ${calIcon}</div>
       <div style="font-size:10px;color:#8a9aaa;margin-top:2px">目标 <10,000 kcal (TDEE 1,430 × 7天)</div>
