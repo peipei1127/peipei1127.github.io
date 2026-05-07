@@ -374,14 +374,34 @@ async function loadHistory(){
     {label:'蛋白质 g',data:dates.map(d=>Math.round(byDate[d].pro)),backgroundColor:'rgba(100,181,246,0.5)',borderColor:'#64b5f6',borderWidth:1}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8a9aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#5a6a7a',font:{size:10}}},y:{ticks:{color:'#5a6a7a',font:{size:10}}}}}});
 
+  // Weekly summary
+  const daysWithData=dates.filter(d=>byDate[d].cal>0);
+  const weekCal=daysWithData.reduce((s,d)=>s+byDate[d].cal,0);
+  const weekPro=daysWithData.reduce((s,d)=>s+byDate[d].pro,0);
+  const weekCarb=daysWithData.reduce((s,d)=>s+byDate[d].carb,0);
+  const weekFat=daysWithData.reduce((s,d)=>s+byDate[d].fat,0);
+  const avgCal=daysWithData.length?Math.round(weekCal/daysWithData.length):0;
+  const avgPro=daysWithData.length?Math.round(weekPro/daysWithData.length):0;
+  let sumHtml=`<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.06)">
+    <div style="color:#ffd54f;font-size:13px;font-weight:600;margin-bottom:8px">📊 一周总结 (${daysWithData.length}天)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+      <div>总热量: <span style="color:#ffd54f;font-weight:600">${Math.round(weekCal)} kcal</span></div>
+      <div>日均: <span style="color:#ffd54f;font-weight:600">${avgCal} kcal</span></div>
+      <div>总蛋白: <span style="color:#64b5f6;font-weight:600">${Math.round(weekPro)}g</span></div>
+      <div>日均: <span style="color:#64b5f6;font-weight:600">${avgPro}g</span></div>
+      <div>总碳水: <span style="color:#ce93d8;font-weight:600">${Math.round(weekCarb)}g</span></div>
+      <div>总脂肪: <span style="color:#ff8a65;font-weight:600">${Math.round(weekFat)}g</span></div>
+    </div>
+  </div>`;
+
   // List
-  let html='';
+  let html=sumHtml;
   dates.reverse().forEach(d=>{
     const v=byDate[d];
     if(v.cal===0)return;
     html+=`<div class="weight-entry"><span class="date">${fmtDateZH(d)}</span><span style="font-size:11px"><span style="color:#ffd54f">${Math.round(v.cal)}kcal</span> · <span style="color:#64b5f6">${Math.round(v.pro)}g蛋白</span> · <span style="color:#ce93d8">${Math.round(v.carb)}g碳水</span></span></div>`;
   });
-  if(!html)html='<div class="empty">暂无数据</div>';
+  if(daysWithData.length===0)html+='<div class="empty">暂无数据</div>';
   document.getElementById('historyList').innerHTML=html;
 }
 
