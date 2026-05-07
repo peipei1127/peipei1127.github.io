@@ -219,8 +219,14 @@ async function loadLocStatus(){
   const todayPS=ps.filter(p=>fd(p.created_at)===today);
   const locEvents=todayPS.filter(e=>['arrived_home','left_home','arrived_office','left_office'].includes(e.event));
   const el=document.getElementById('loc-status');
-  if(locEvents.length){const ev=locEvents[0].event;el.textContent=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚪 下班了':'🚗 外出'}
-  else{el.textContent=''}
+  if(locEvents.length){
+    const gpsEv=locEvents.find(e=>e.event==='arrived_home'||e.event==='left_home');
+    const btnEv=locEvents.find(e=>e.event==='arrived_office'||e.event==='left_office');
+    let ev;
+    if(gpsEv&&btnEv){ev=new Date(gpsEv.created_at)>=new Date(btnEv.created_at)?gpsEv.event:btnEv.event}
+    else{ev=locEvents[0].event}
+    el.textContent=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚪 下班了':'🚗 外出'
+  }else{el.textContent=''}
 }
 function ft(ts){const d=new Date(ts);const h=(d.getUTCHours()+8)%24;const m=d.getUTCMinutes();return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`}
 function fd(ts){const d=new Date(ts);const h=(d.getUTCHours()+8);const day=new Date(d.getTime()+8*3600000);return day.toISOString().slice(0,10)}
@@ -286,7 +292,14 @@ async function loadStats(){
   const appStats=appKeys.map(k=>({name:APP_NAMES[k],min:calcAppTime(todayPS,k)})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
   const locEvents=todayPS.filter(e=>['arrived_home','left_home','arrived_office','left_office'].includes(e.event.toLowerCase()));
   let locStatus='';
-  if(locEvents.length){const last=locEvents[0];const ev=last.event.toLowerCase();locStatus=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚗 下班了':'🚗 外出'}
+  if(locEvents.length){
+    const gpsEv=locEvents.find(e=>e.event==='arrived_home'||e.event==='left_home');
+    const btnEv=locEvents.find(e=>e.event==='arrived_office'||e.event==='left_office');
+    let ev;
+    if(gpsEv&&btnEv){ev=new Date(gpsEv.created_at)>=new Date(btnEv.created_at)?gpsEv.event:btnEv.event}
+    else{ev=locEvents[0].event}
+    locStatus=ev==='arrived_home'?'🏠 在家':ev==='arrived_office'?'📍 在office · 上班中':ev==='left_office'?'🚗 下班了':'🚗 外出'
+  }
   document.getElementById('stat-detail').innerHTML=`
     ${appStats.length?`<div style="margin-bottom:14px"><div style="color:#ce93d8;font-size:12px;margin-bottom:8px">📱 今日App时长</div>
     ${appStats.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;color:#b0bec5">${a.name}</span><span style="font-size:12px;font-weight:600;color:#c9a0dc">${fmtMin(a.min)}</span></div>`).join('')}
