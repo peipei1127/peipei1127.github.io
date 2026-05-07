@@ -356,11 +356,12 @@ async function loadHistory(){
   const r=await fetch(`${SB}/rest/v1/meals?meal_date=gte.${fmtDate(start)}&meal_date=lte.${fmtDate(sunday)}&order=meal_date.desc,created_at`,{headers:H});
   const meals=await r.json();
 
-  // Group by date - show this week (Mon-Sun)
+  // Group by date - this week only (Mon-Sun)
   const byDate={};
-  for(let i=0;i<7;i++){const d=new Date(monday.getTime()+i*86400000);byDate[fmtDate(d)]={cal:0,pro:0,carb:0,fat:0}}
+  const weekDates=new Set();
+  for(let i=0;i<7;i++){const dd=fmtDate(new Date(monday.getTime()+i*86400000));byDate[dd]={cal:0,pro:0,carb:0,fat:0};weekDates.add(dd)}
   meals.forEach(m=>{
-    if(!byDate[m.meal_date])byDate[m.meal_date]={cal:0,pro:0,carb:0,fat:0};
+    if(!weekDates.has(m.meal_date))return;
     byDate[m.meal_date].cal+=m.calories;
     byDate[m.meal_date].pro+=m.protein;
     byDate[m.meal_date].carb+=m.carbs;
