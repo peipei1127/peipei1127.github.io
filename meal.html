@@ -347,12 +347,12 @@ async function delMeal(id){
 }
 
 // History / Trends
-function getMonday(d){const dt=new Date(d.getTime()+8*3600000);const day=dt.getUTCDay();const diff=day===0?6:day-1;dt.setUTCDate(dt.getUTCDate()-diff);return dt}
+function getMonday(d){const myt=new Date(d.getTime()+8*3600000);const day=myt.getUTCDay();const diff=day===0?6:day-1;return new Date(d.getTime()-diff*86400000)}
 async function loadHistory(){
   const now=new Date();
   const monday=getMonday(now);
   const sunday=new Date(monday.getTime()+6*86400000);
-  const start=new Date(monday.getTime()-7*86400000);
+  const start=new Date(monday.getTime()-56*86400000);
   const r=await fetch(`${SB}/rest/v1/meals?meal_date=gte.${fmtDate(start)}&meal_date=lte.${fmtDate(sunday)}&order=meal_date.desc,created_at`,{headers:H});
   const meals=await r.json();
 
@@ -414,6 +414,26 @@ async function loadHistory(){
     html+=`<div class="weight-entry"><span class="date">${fmtDateZH(d)}</span><span style="font-size:11px"><span style="color:#ffd54f">${Math.round(v.cal)}kcal</span> · <span style="color:#64b5f6">${Math.round(v.pro)}g蛋白</span> · <span style="color:#ce93d8">${Math.round(v.carb)}g碳水</span></span></div>`;
   });
   if(daysWithData.length===0)html+='<div class="empty">暂无数据</div>';
+
+  // Historical weeks (past 8 weeks)
+  html+='<div style="color:#8a9aaa;font-size:12px;margin:16px 0 8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">📋 历史周记录</div>';
+  for(let w=1;w<=8;w++){
+    const wMon=new Date(monday.getTime()-w*7*86400000);
+    const wSun=new Date(wMon.getTime()+6*86400000);
+    let wCal=0,wPro=0,wCarb=0,wFat=0,wDays=0;
+    for(let i=0;i<7;i++){
+      const dd=fmtDate(new Date(wMon.getTime()+i*86400000));
+      const found=meals.filter(m=>m.meal_date===dd);
+      if(found.length){wDays++;found.forEach(m=>{wCal+=m.calories;wPro+=m.protein;wCarb+=m.carbs;wFat+=m.fat})}
+    }
+    if(wDays===0)continue;
+    const wOk=wCal<=weekTarget;
+    html+=`<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center">
+      <div><span style="font-size:11px;color:#8a9aaa">${fmtDateZH(fmtDate(wMon))}~${fmtDateZH(fmtDate(wSun))}</span> <span style="font-size:9px;color:#5a6a7a">(${wDays}天)</span></div>
+      <div style="font-size:12px"><span style="color:${wOk?'#81c784':'#ef5350'};font-weight:600">${Math.round(wCal).toLocaleString()} kcal ${wOk?'✅':'❌'}</span> <span style="font-size:9px;color:#5a6a7a">均${wDays?Math.round(wCal/wDays):0}</span></div>
+    </div>`;
+  }
+
   document.getElementById('historyList').innerHTML=html;
 }
 
