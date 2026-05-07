@@ -382,15 +382,23 @@ async function loadHistory(){
   const weekFat=daysWithData.reduce((s,d)=>s+byDate[d].fat,0);
   const avgCal=daysWithData.length?Math.round(weekCal/daysWithData.length):0;
   const avgPro=daysWithData.length?Math.round(weekPro/daysWithData.length):0;
+  const weekTarget=10000;
+  const calOk=weekCal<=weekTarget;
+  const calColor=calOk?'#81c784':'#ef5350';
+  const calIcon=calOk?'✅':'❌';
   let sumHtml=`<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.06)">
     <div style="color:#ffd54f;font-size:13px;font-weight:600;margin-bottom:8px">📊 一周总结 (${daysWithData.length}天)</div>
+    <div style="text-align:center;margin-bottom:10px;padding:8px;background:rgba(${calOk?'129,199,132':'239,83,80'},0.1);border-radius:8px">
+      <div style="font-size:20px;font-weight:700;color:${calColor}">${Math.round(weekCal).toLocaleString()} kcal ${calIcon}</div>
+      <div style="font-size:10px;color:#8a9aaa;margin-top:2px">目标 <10,000 kcal (TDEE 1,430 × 7天)</div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-      <div>总热量: <span style="color:#ffd54f;font-weight:600">${Math.round(weekCal)} kcal</span></div>
-      <div>日均: <span style="color:#ffd54f;font-weight:600">${avgCal} kcal</span></div>
+      <div>日均热量: <span style="color:#ffd54f;font-weight:600">${avgCal} kcal</span></div>
+      <div>日均蛋白: <span style="color:#64b5f6;font-weight:600">${avgPro}g</span></div>
       <div>总蛋白: <span style="color:#64b5f6;font-weight:600">${Math.round(weekPro)}g</span></div>
-      <div>日均: <span style="color:#64b5f6;font-weight:600">${avgPro}g</span></div>
       <div>总碳水: <span style="color:#ce93d8;font-weight:600">${Math.round(weekCarb)}g</span></div>
       <div>总脂肪: <span style="color:#ff8a65;font-weight:600">${Math.round(weekFat)}g</span></div>
+      <div>余量: <span style="color:${calColor};font-weight:600">${calOk?Math.round(weekTarget-weekCal):'+'+Math.round(weekCal-weekTarget)} kcal</span></div>
     </div>
   </div>`;
 
