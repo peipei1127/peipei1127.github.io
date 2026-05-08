@@ -192,7 +192,7 @@ body{
       </div>
       <div class="input-bar">
         <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="发图片">+</button>
-        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="sendImage(this)">
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="sendImages(this)">
         <textarea id="chatInput" rows="1" placeholder="说点什么..." oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -315,9 +315,10 @@ async function loadMessages() {
 }
 
 function parseThinking(raw) {
-  const m = raw.match(/\[think\]([\s\S]*?)\[\/think\]([\s\S]*)/);
+  const cleaned = raw.replace(/\[\s*\/\s*think\s*\]/g, '[/think]');
+  const m = cleaned.match(/\[think\]([\s\S]*?)\[\/think\]([\s\S]*)/);
   if (m) return { thinking: m[1].trim(), text: m[2].trim() };
-  return { thinking: null, text: raw };
+  return { thinking: null, text: cleaned };
 }
 
 function appendMessage(msg) {
@@ -372,28 +373,32 @@ async function sendMessage() {
 document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
 
 // --- Chat: send image ---
-async function sendImage(fileInput) {
-  const file = fileInput.files[0];
-  if (!file) return;
-  const ext = file.name.split('.').pop() || 'jpg';
-  const fileName = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+async function sendImages(fileInput) {
+  const files = Array.from(fileInput.files);
+  if (!files.length) return;
 
   try {
-    // Upload to Supabase Storage
-    const uploadRes = await fetch(SB_URL+'/storage/v1/object/chat-images/'+fileName, {
-      method: 'POST',
-      headers: {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
-      body: file
-    });
-    if (!uploadRes.ok) throw new Error('上传失败 '+uploadRes.status);
+    const urls = [];
+    for (const file of files) {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const uploadRes = await fetch(SB_URL+'/storage/v1/object/chat-images/'+fileName, {
+        method: 'POST',
+        headers: {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
+        body: file
+      });
+      if (!uploadRes.ok) throw new Error('上传失败 '+uploadRes.status);
+      urls.push(SB_URL+'/storage/v1/object/public/chat-images/'+fileName);
+    }
 
-    const imgUrl = SB_URL+'/storage/v1/object/public/chat-images/'+fileName;
-    // Write image message to DB
-    await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+imgUrl+'[/img]'})});
-    // Notify CC
+    for (const url of urls) {
+      await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+url+'[/img]'})});
+    }
+
     const token = getToken();
     if (token) {
-      await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text:'[慕兮发了一张图片: '+imgUrl+']'})});
+      const desc = urls.length === 1 ? '一张图片' : urls.length+'张图片';
+      await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text:'[慕兮发了'+desc+': '+urls.join(' ')+']'})});
     }
     if (!realtimeReady) loadMessages();
   } catch(e) {
