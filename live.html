@@ -366,6 +366,7 @@ async function sendMessage() {
     await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:text})});
     await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
     input.value=''; autoResize(input);
+    playSendSound();
     if (!realtimeReady) loadMessages();
   } catch(e){alert('发送失败: '+e.message);}
   finally{btn.disabled=false;}
@@ -419,6 +420,7 @@ function trySetupRealtime() {
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'}, p => {
         appendMessage(p.new);
         scrollToBottom();
+        if (p.new.direction === 'out') playReceiveSound();
       })
       .subscribe(status => {
         const dot = document.getElementById('realtimeDot');
@@ -447,6 +449,30 @@ function startPolling() {
   const txt = document.getElementById('realtimeStatus');
   txt.textContent = '轮询模式 (5秒)';
 }
+
+// --- Sound effects ---
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, duration, vol) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.3;
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+function playSendSound() { playTone(1200, 0.08, 0.15); setTimeout(() => playTone(1500, 0.08, 0.12), 70); }
+function playReceiveSound() { playTone(800, 0.1, 0.2); setTimeout(() => playTone(1200, 0.1, 0.18), 120); setTimeout(() => playTone(1600, 0.12, 0.15), 250); }
 
 // --- Helpers ---
 function formatContent(html){html=html.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:600;color:#e8d5f5">$1</strong>');return html.replace(/\n/g,'<br>');}
