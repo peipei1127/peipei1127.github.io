@@ -119,6 +119,16 @@ body{
 .send-btn:active{transform:scale(0.9)}
 .send-btn:disabled{opacity:0.3;cursor:not-allowed}
 .send-btn svg{width:16px;height:16px}
+.attach-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);
+  color:#c9a0dc;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .2s;
+}
+.attach-btn:active{background:rgba(201,160,220,0.15);transform:scale(0.9)}
+.msg-img{max-width:100%;border-radius:12px;margin-top:4px;cursor:pointer}
+.msg-img:active{opacity:0.8}
 
 /* Terminal */
 .terminal-pane{background:#000}
@@ -181,9 +191,11 @@ body{
         <span id="realtimeStatus">连接中...</span>
       </div>
       <div class="input-bar">
+        <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="发图片">+</button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="sendImage(this)">
         <textarea id="chatInput" rows="1" placeholder="说点什么..." oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
       </div>
     </div>
@@ -327,13 +339,21 @@ function appendMessage(msg) {
   }
   const div = document.createElement('div');
   div.className = 'msg '+dir;
-  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+formatContent(content)+'</div>'+thinkHtml+'<div class="msg-time">'+time+'</div></div>';
+  const isImg = (parsed.text.startsWith('https://') && /\.(jpg|jpeg|png|gif|webp)/i.test(parsed.text)) || parsed.text.startsWith('[img]');
+  let bubbleContent;
+  if (isImg) {
+    const imgUrl = parsed.text.replace(/^\[img\]/,'').replace(/\[\/img\]$/,'');
+    bubbleContent = '<img class="msg-img" src="'+imgUrl+'" onclick="window.open(this.src,\'_blank\')" loading="lazy">';
+  } else {
+    bubbleContent = formatContent(content);
+  }
+  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+bubbleContent+'</div>'+thinkHtml+'<div class="msg-time">'+time+'</div></div>';
   container.appendChild(div);
 }
 
 function scrollToBottom(){const c=document.getElementById('chatMessages');requestAnimationFrame(()=>{c.scrollTop=c.scrollHeight;});}
 
-// --- Chat: send (plain fetch) ---
+// --- Chat: send text ---
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
@@ -342,9 +362,7 @@ async function sendMessage() {
   const btn = document.getElementById('sendBtn');
   btn.disabled = true;
   try {
-    // Write to DB
     await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:text})});
-    // Send to CC
     await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
     input.value=''; autoResize(input);
     if (!realtimeReady) loadMessages();
@@ -352,6 +370,37 @@ async function sendMessage() {
   finally{btn.disabled=false;}
 }
 document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+
+// --- Chat: send image ---
+async function sendImage(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop() || 'jpg';
+  const fileName = Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+
+  try {
+    // Upload to Supabase Storage
+    const uploadRes = await fetch(SB_URL+'/storage/v1/object/chat-images/'+fileName, {
+      method: 'POST',
+      headers: {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
+      body: file
+    });
+    if (!uploadRes.ok) throw new Error('上传失败 '+uploadRes.status);
+
+    const imgUrl = SB_URL+'/storage/v1/object/public/chat-images/'+fileName;
+    // Write image message to DB
+    await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+imgUrl+'[/img]'})});
+    // Notify CC
+    const token = getToken();
+    if (token) {
+      await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text:'[慕兮发了一张图片: '+imgUrl+']'})});
+    }
+    if (!realtimeReady) loadMessages();
+  } catch(e) {
+    alert('图片发送失败: '+e.message);
+  }
+  fileInput.value = '';
+}
 
 // --- Realtime (Supabase JS, loaded async) ---
 function trySetupRealtime() {
