@@ -67,6 +67,25 @@ body{
 .msg.in .msg-time{text-align:left}
 .msg-label{font-size:10px;color:#6a5a8a;margin-bottom:2px}
 .msg.out .msg-label{text-align:right}
+.thinking-block{margin-top:6px}
+.thinking-toggle{
+  font-size:11px;color:#7a6a9a;cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;user-select:none;transition:color .2s;
+  background:rgba(201,160,220,0.08);border-radius:8px;
+}
+.thinking-toggle:active{color:#c9a0dc}
+.thinking-toggle .arrow{display:inline-block;transition:transform .2s;font-size:9px}
+.thinking-toggle .arrow.open{transform:rotate(90deg)}
+.thinking-content{
+  display:none;font-size:12px;color:#7a7090;
+  background:rgba(201,160,220,0.05);border-radius:8px;
+  padding:8px 12px;margin-top:4px;
+  border-left:3px solid rgba(201,160,220,0.3);
+  line-height:1.6;white-space:pre-wrap;max-height:200px;overflow-y:auto;
+}
+.thinking-content::-webkit-scrollbar{width:2px}
+.thinking-content::-webkit-scrollbar-thumb{background:rgba(201,160,220,0.15);border-radius:2px}
+.thinking-content.open{display:block}
 .chat-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#3a3a5a;font-size:13px;text-align:center;padding:40px}
 .chat-status-bar{
   padding:6px 16px;font-size:10px;text-align:center;color:#4a5a6a;
@@ -281,6 +300,12 @@ async function loadMessages() {
   }
 }
 
+function parseThinking(raw) {
+  const m = raw.match(/\[think\]([\s\S]*?)\[\/think\]([\s\S]*)/);
+  if (m) return { thinking: m[1].trim(), text: m[2].trim() };
+  return { thinking: null, text: raw };
+}
+
 function appendMessage(msg) {
   if (renderedIds.has(msg.id)) return;
   renderedIds.add(msg.id);
@@ -288,10 +313,19 @@ function appendMessage(msg) {
   const dir = msg.direction==='in' ? 'out' : 'in';
   const label = msg.direction==='in' ? '慕兮' : '长晏';
   const time = formatTime(new Date(msg.created_at));
-  const content = escapeHtml(msg.content||'');
+  const parsed = parseThinking(msg.content||'');
+  const content = escapeHtml(parsed.text);
+  let thinkHtml = '';
+  if (parsed.thinking) {
+    const thinkText = escapeHtml(parsed.thinking);
+    thinkHtml = '<div class="thinking-block">' +
+      '<div class="thinking-toggle" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">' +
+      '<span class="arrow">▶</span> 思维链</div>' +
+      '<div class="thinking-content">'+thinkText+'</div></div>';
+  }
   const div = document.createElement('div');
   div.className = 'msg '+dir;
-  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+formatContent(content)+'</div><div class="msg-time">'+time+'</div></div>';
+  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+formatContent(content)+'</div>'+thinkHtml+'<div class="msg-time">'+time+'</div></div>';
   container.appendChild(div);
 }
 
