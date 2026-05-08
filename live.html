@@ -234,10 +234,16 @@ body{
         <button onclick="reloadTerminal()">重新加载</button>
         <button onclick="openFullscreen()">全屏打开 ↗</button>
       </div>
-      <div style="flex:1;position:relative;background:#000" id="terminalContainer">
+      <div style="flex:1;position:relative;background:#000;overflow:hidden" id="terminalContainer">
         <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a5a7a;font-size:13px" id="terminalPlaceholder">
           点击下方「终端」tab 加载终端
         </div>
+      </div>
+      <div class="chat-input-bar" id="terminalInputBar" style="display:none">
+        <textarea id="termInput" rows="1" placeholder="输入命令或消息..." oninput="autoResize(this)"></textarea>
+        <button class="send-btn" onclick="sendTerminalInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -285,9 +291,11 @@ function switchTab(tab) {
   if (tab === 'chat') {
     document.getElementById('paneChat').classList.add('active');
     document.getElementById('tabChat').classList.add('active');
+    document.getElementById('terminalInputBar').style.display = 'none';
   } else if (tab === 'terminal') {
     document.getElementById('paneTerminal').classList.add('active');
     document.getElementById('tabTerminal').classList.add('active');
+    document.getElementById('terminalInputBar').style.display = 'flex';
     if (!terminalLoaded) loadTerminal();
   }
 }
@@ -315,6 +323,27 @@ function reloadTerminal() {
 function openFullscreen() {
   window.open(TERMINAL_URL, '_blank');
 }
+
+async function sendTerminalInput() {
+  const input = document.getElementById('termInput');
+  const text = input.value.trim();
+  if (!text) return;
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await fetch(API_URL + '/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ text: text })
+    });
+    if (res.status === 401) { localStorage.removeItem('live_api_token'); alert('密码错误'); return; }
+    if (res.ok) { input.value = ''; autoResize(input); }
+  } catch (e) { alert('发送失败: ' + e.message); }
+}
+
+document.getElementById('termInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTerminalInput(); }
+});
 
 // --- Chat ---
 async function loadMessages() {
