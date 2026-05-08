@@ -5,37 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>长晏 · Live</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💜</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   background:#0a0a1a;
   min-height:100vh;min-height:100dvh;
-  color:#e0e0e0;
-  display:flex;justify-content:center;
-  overflow:hidden;
+  color:#e0e0e0;display:flex;justify-content:center;overflow:hidden;
 }
 .app{
-  width:100%;max-width:500px;
-  height:100vh;height:100dvh;
-  display:flex;flex-direction:column;
-  position:relative;overflow:hidden;
+  width:100%;max-width:500px;height:100vh;height:100dvh;
+  display:flex;flex-direction:column;position:relative;overflow:hidden;
 }
-
 .header{
-  background:rgba(20,10,40,0.95);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  padding:12px 16px;
-  display:flex;align-items:center;gap:12px;
-  border-bottom:1px solid rgba(201,160,220,0.15);
-  z-index:10;flex-shrink:0;
+  background:rgba(20,10,40,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(201,160,220,0.15);z-index:10;flex-shrink:0;
 }
 .header-avatar{
   width:36px;height:36px;border-radius:50%;
   background:linear-gradient(135deg,#2d1b4e,#4a2d6e);
   display:flex;align-items:center;justify-content:center;
-  font-size:16px;color:#c9a0dc;
-  border:2px solid rgba(201,160,220,0.3);flex-shrink:0;
+  font-size:16px;color:#c9a0dc;border:2px solid rgba(201,160,220,0.3);flex-shrink:0;
 }
 .header-info{flex:1}
 .header-title{
@@ -50,85 +42,58 @@ body{
 .header-status span{color:#7a8a9a}
 .header-action{
   background:none;border:none;color:#6a5a8a;font-size:14px;
-  cursor:pointer;padding:6px 8px;border-radius:8px;
-  transition:all .2s;
+  cursor:pointer;padding:6px 8px;border-radius:8px;transition:all .2s;
 }
 .header-action:active{background:rgba(201,160,220,0.1);color:#c9a0dc}
 
 .tab-content{flex:1;overflow:hidden;position:relative}
-.tab-pane{
-  position:absolute;top:0;left:0;right:0;bottom:0;
-  display:none;flex-direction:column;
-}
+.tab-pane{position:absolute;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column}
 .tab-pane.active{display:flex}
 
 /* Chat */
 .chat-messages{
-  flex:1;overflow-y:auto;padding:12px;
-  display:flex;flex-direction:column;gap:6px;
+  flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;
   -webkit-overflow-scrolling:touch;
 }
 .chat-messages::-webkit-scrollbar{width:3px}
 .chat-messages::-webkit-scrollbar-thumb{background:rgba(201,160,220,0.2);border-radius:3px}
-
 .msg{display:flex;gap:8px;max-width:100%;animation:fadeIn .25s ease}
 .msg.out{flex-direction:row-reverse}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-.msg-bubble{
-  max-width:78%;padding:10px 14px;border-radius:16px;
-  font-size:14px;line-height:1.55;word-break:break-word;
-}
-.msg.in .msg-bubble{
-  background:rgba(40,25,60,0.9);
-  border:1px solid rgba(201,160,220,0.12);
-  border-top-left-radius:4px;color:#e0d5ea;
-}
-.msg.out .msg-bubble{
-  background:linear-gradient(135deg,#5b2d8e,#7b3dae);
-  border:1px solid rgba(123,61,174,0.3);
-  border-top-right-radius:4px;color:#f5eeff;
-}
+.msg-bubble{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.55;word-break:break-word}
+.msg.in .msg-bubble{background:rgba(40,25,60,0.9);border:1px solid rgba(201,160,220,0.12);border-top-left-radius:4px;color:#e0d5ea}
+.msg.out .msg-bubble{background:linear-gradient(135deg,#5b2d8e,#7b3dae);border:1px solid rgba(123,61,174,0.3);border-top-right-radius:4px;color:#f5eeff}
 .msg-time{font-size:9px;color:#5a5a7a;margin-top:3px;text-align:right}
 .msg.in .msg-time{text-align:left}
 .msg-label{font-size:10px;color:#6a5a8a;margin-bottom:2px}
 .msg.out .msg-label{text-align:right}
-
-.chat-empty{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  color:#3a3a5a;font-size:13px;text-align:center;padding:40px;
-}
+.chat-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#3a3a5a;font-size:13px;text-align:center;padding:40px}
 .chat-status-bar{
-  padding:6px 16px;font-size:10px;text-align:center;
-  color:#4a5a6a;border-top:1px solid rgba(255,255,255,0.04);
-  flex-shrink:0;background:rgba(10,10,26,0.8);
+  padding:6px 16px;font-size:10px;text-align:center;color:#4a5a6a;
+  border-top:1px solid rgba(255,255,255,0.04);flex-shrink:0;background:rgba(10,10,26,0.8);
 }
+.realtime-dot{width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:4px}
+.realtime-dot.on{background:#4caf50}
+.realtime-dot.off{background:#ef5350}
 
-/* Chat input */
-.chat-input-bar{
-  background:rgba(20,10,40,0.95);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  padding:8px 12px;
-  border-top:1px solid rgba(201,160,220,0.1);
-  display:flex;align-items:flex-end;gap:8px;
-  flex-shrink:0;
+/* Input bar (shared) */
+.input-bar{
+  background:rgba(20,10,40,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:8px 12px;border-top:1px solid rgba(201,160,220,0.1);
+  display:flex;align-items:flex-end;gap:8px;flex-shrink:0;
 }
-.chat-input-bar textarea{
-  flex:1;background:rgba(255,255,255,0.06);
-  border:1px solid rgba(201,160,220,0.15);
-  border-radius:20px;padding:9px 16px;
-  color:#e0e0e0;font-size:14px;resize:none;outline:none;
+.input-bar textarea{
+  flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(201,160,220,0.15);
+  border-radius:20px;padding:9px 16px;color:#e0e0e0;font-size:14px;resize:none;outline:none;
   max-height:80px;min-height:36px;line-height:1.4;font-family:inherit;
 }
-.chat-input-bar textarea:focus{border-color:rgba(201,160,220,0.4);background:rgba(255,255,255,0.08)}
-.chat-input-bar textarea::placeholder{color:#4a4060}
+.input-bar textarea:focus{border-color:rgba(201,160,220,0.4);background:rgba(255,255,255,0.08)}
+.input-bar textarea::placeholder{color:#4a4060}
 .send-btn{
   width:36px;height:36px;border-radius:50%;
   background:linear-gradient(135deg,#7b3dae,#5b2d8e);
-  border:none;color:#fff;font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .2s;
-  box-shadow:0 2px 8px rgba(123,61,174,0.3);
+  border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .2s;box-shadow:0 2px 8px rgba(123,61,174,0.3);
 }
 .send-btn:active{transform:scale(0.9)}
 .send-btn:disabled{opacity:0.3;cursor:not-allowed}
@@ -139,66 +104,39 @@ body{
 .terminal-pane iframe{width:100%;height:100%;border:none;background:#000}
 .terminal-toolbar{
   display:flex;justify-content:flex-end;padding:6px 12px;
-  background:rgba(0,0,0,0.9);border-bottom:1px solid rgba(201,160,220,0.08);
-  flex-shrink:0;gap:8px;
+  background:rgba(0,0,0,0.9);border-bottom:1px solid rgba(201,160,220,0.08);flex-shrink:0;gap:8px;
 }
 .terminal-toolbar button{
   background:rgba(201,160,220,0.1);border:1px solid rgba(201,160,220,0.2);
-  color:#c9a0dc;font-size:11px;padding:4px 12px;border-radius:6px;
-  cursor:pointer;transition:all .2s;
+  color:#c9a0dc;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .2s;
 }
 .terminal-toolbar button:active{background:rgba(201,160,220,0.2)}
 
 /* Tab bar */
 .tab-bar{
-  background:rgba(15,8,30,0.98);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border-top:1px solid rgba(201,160,220,0.12);
-  display:flex;
-  padding:6px 0;
-  padding-bottom:max(6px,env(safe-area-inset-bottom));
-  flex-shrink:0;z-index:10;
+  background:rgba(15,8,30,0.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(201,160,220,0.12);display:flex;
+  padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom));flex-shrink:0;z-index:10;
 }
 .tab-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:6px 0;
-  background:none;border:none;
-  color:#5a5a7a;font-size:10px;
-  cursor:pointer;transition:color .2s;
-  -webkit-tap-highlight-color:transparent;
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;
+  background:none;border:none;color:#5a5a7a;font-size:10px;
+  cursor:pointer;transition:color .2s;-webkit-tap-highlight-color:transparent;
 }
 .tab-btn.active{color:#c9a0dc}
 .tab-btn .tab-icon{font-size:20px;line-height:1}
 .tab-btn .tab-label{font-weight:500}
 .tab-btn:active{transform:scale(0.95)}
 
-.loading{
-  display:flex;align-items:center;justify-content:center;
-  padding:20px;color:#5a5a7a;font-size:12px;gap:8px;
-}
-.spinner{
-  width:16px;height:16px;border:2px solid rgba(201,160,220,0.2);
-  border-top-color:#c9a0dc;border-radius:50%;
-  animation:spin .8s linear infinite;
-}
+.loading{display:flex;align-items:center;justify-content:center;padding:20px;color:#5a5a7a;font-size:12px;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid rgba(201,160,220,0.2);border-top-color:#c9a0dc;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.sending-indicator{
-  font-size:10px;color:#7a6a9a;text-align:center;padding:4px;
-  display:none;
-}
-.sending-indicator.show{display:block}
-
-@supports(padding:max(0px)){
-  .header{padding-top:max(12px,env(safe-area-inset-top))}
-}
-@media(min-width:501px){
-  .app{border-left:1px solid rgba(201,160,220,0.08);border-right:1px solid rgba(201,160,220,0.08)}
-}
+@supports(padding:max(0px)){.header{padding-top:max(12px,env(safe-area-inset-top))}}
+@media(min-width:501px){.app{border-left:1px solid rgba(201,160,220,0.08);border-right:1px solid rgba(201,160,220,0.08)}}
 </style>
 </head>
 <body>
-
 <div class="app">
   <div class="header">
     <div class="header-avatar">晏</div>
@@ -213,22 +151,22 @@ body{
   </div>
 
   <div class="tab-content">
-    <!-- Chat -->
     <div class="tab-pane active" id="paneChat">
       <div class="chat-messages" id="chatMessages">
         <div class="loading" id="chatLoading"><div class="spinner"></div><span>加载消息...</span></div>
       </div>
-      <div class="chat-status-bar" id="chatStatusBar">加载中...</div>
-      <div class="sending-indicator" id="sendingIndicator">发送中...</div>
-      <div class="chat-input-bar">
+      <div class="chat-status-bar" id="chatStatusBar">
+        <span class="realtime-dot off" id="realtimeDot"></span>
+        <span id="realtimeStatus">连接中...</span>
+      </div>
+      <div class="input-bar">
         <textarea id="chatInput" rows="1" placeholder="说点什么..." oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendChatMessage()">
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- Terminal -->
     <div class="tab-pane" id="paneTerminal">
       <div class="terminal-toolbar">
         <button onclick="reloadTerminal()">重新加载</button>
@@ -236,10 +174,10 @@ body{
       </div>
       <div style="flex:1;position:relative;background:#000;overflow:hidden" id="terminalContainer">
         <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a5a7a;font-size:13px" id="terminalPlaceholder">
-          点击下方「终端」tab 加载终端
+          点击下方「终端」加载
         </div>
       </div>
-      <div class="chat-input-bar" id="terminalInputBar" style="display:none">
+      <div class="input-bar">
         <textarea id="termInput" rows="1" placeholder="输入命令或消息..." oninput="autoResize(this)"></textarea>
         <button class="send-btn" onclick="sendTerminalInput()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -265,21 +203,16 @@ const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
 const API_URL = 'https://ws.changyan.chat/api';
 const TERMINAL_URL = 'https://ws.changyan.chat';
-const API_TOKEN = localStorage.getItem('live_api_token') || '';
 
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentTab = 'chat';
 let terminalLoaded = false;
-let lastMessageId = null;
-let refreshTimer = null;
+let renderedIds = new Set();
 
-// --- Auth ---
 function getToken() {
-  let token = localStorage.getItem('live_api_token');
-  if (!token) {
-    token = prompt('输入密码:');
-    if (token) localStorage.setItem('live_api_token', token);
-  }
-  return token;
+  let t = localStorage.getItem('live_api_token');
+  if (!t) { t = prompt('输入密码:'); if (t) localStorage.setItem('live_api_token', t); }
+  return t;
 }
 
 // --- Tab ---
@@ -287,204 +220,171 @@ function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-
   if (tab === 'chat') {
     document.getElementById('paneChat').classList.add('active');
     document.getElementById('tabChat').classList.add('active');
-    document.getElementById('terminalInputBar').style.display = 'none';
-  } else if (tab === 'terminal') {
+  } else {
     document.getElementById('paneTerminal').classList.add('active');
     document.getElementById('tabTerminal').classList.add('active');
-    document.getElementById('terminalInputBar').style.display = 'flex';
     if (!terminalLoaded) loadTerminal();
   }
 }
 
 // --- Terminal ---
 function loadTerminal() {
-  const container = document.getElementById('terminalContainer');
-  const placeholder = document.getElementById('terminalPlaceholder');
-  if (placeholder) placeholder.remove();
-
+  const c = document.getElementById('terminalContainer');
+  const p = document.getElementById('terminalPlaceholder');
+  if (p) p.remove();
   const iframe = document.createElement('iframe');
   iframe.id = 'terminalIframe';
   iframe.src = TERMINAL_URL;
   iframe.style.cssText = 'width:100%;height:100%;border:none;background:#000';
   iframe.setAttribute('allow', 'clipboard-read; clipboard-write; keyboard-map');
-  container.appendChild(iframe);
+  c.appendChild(iframe);
   terminalLoaded = true;
 }
-
-function reloadTerminal() {
-  const iframe = document.getElementById('terminalIframe');
-  if (iframe) iframe.src = TERMINAL_URL;
-}
-
-function openFullscreen() {
-  window.open(TERMINAL_URL, '_blank');
-}
+function reloadTerminal() { const f = document.getElementById('terminalIframe'); if (f) f.src = TERMINAL_URL; }
+function openFullscreen() { window.open(TERMINAL_URL, '_blank'); }
 
 async function sendTerminalInput() {
   const input = document.getElementById('termInput');
   const text = input.value.trim();
   if (!text) return;
-  const token = getToken();
-  if (!token) return;
+  const token = getToken(); if (!token) return;
   try {
-    const res = await fetch(API_URL + '/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ text: text })
+    const r = await fetch(API_URL+'/send', {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({text})
     });
-    if (res.status === 401) { localStorage.removeItem('live_api_token'); alert('密码错误'); return; }
-    if (res.ok) { input.value = ''; autoResize(input); }
-  } catch (e) { alert('发送失败: ' + e.message); }
+    if (r.status===401){localStorage.removeItem('live_api_token');alert('密码错误');return;}
+    if (r.ok){input.value='';autoResize(input);}
+  } catch(e){alert('发送失败: '+e.message);}
 }
-
-document.getElementById('termInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTerminalInput(); }
+document.getElementById('termInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTerminalInput();}
 });
 
-// --- Chat ---
+// --- Chat: load history ---
 async function loadMessages() {
   const container = document.getElementById('chatMessages');
-  const statusBar = document.getElementById('chatStatusBar');
-
   try {
-    const res = await fetch(
-      SUPABASE_URL + '/rest/v1/messages?order=created_at.desc&limit=100',
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const messages = await res.json();
-
-    const loading = document.getElementById('chatLoading');
-    if (loading) loading.remove();
-
-    if (!messages.length) {
+    const {data, error} = await supabase.from('messages').select('*').order('created_at',{ascending:false}).limit(100);
+    if (error) throw error;
+    if (!data || !data.length) {
       container.innerHTML = '<div class="chat-empty">还没有消息记录</div>';
-      statusBar.textContent = '暂无消息';
       return;
     }
-
-    messages.reverse();
-    const lastMsg = messages[messages.length - 1];
-
-    if (lastMsg.id !== lastMessageId) {
-      container.innerHTML = messages.map(renderMessage).join('');
-      lastMessageId = lastMsg.id;
-      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
-    }
-
-    const ago = timeAgo(new Date(lastMsg.created_at));
-    statusBar.textContent = '最后消息: ' + ago + ' · 共 ' + messages.length + ' 条 · 每15秒自动刷新';
-  } catch (e) {
-    statusBar.textContent = '加载失败: ' + e.message;
+    data.reverse();
+    container.innerHTML = '';
+    renderedIds.clear();
+    data.forEach(m => appendMessage(m));
+    scrollToBottom();
+  } catch(e) {
+    console.error(e);
   }
+  document.getElementById('chatLoading')?.remove();
 }
 
-function renderMessage(msg) {
+function appendMessage(msg) {
+  if (renderedIds.has(msg.id)) return;
+  renderedIds.add(msg.id);
+  const container = document.getElementById('chatMessages');
   const dir = msg.direction === 'in' ? 'out' : 'in';
   const label = msg.direction === 'in' ? '慕兮' : '长晏';
   const time = formatTime(new Date(msg.created_at));
   const content = escapeHtml(msg.content || '');
 
-  return '<div class="msg ' + dir + '">' +
-    '<div style="max-width:78%">' +
-      '<div class="msg-label">' + label + '</div>' +
-      '<div class="msg-bubble">' + formatContent(content) + '</div>' +
-      '<div class="msg-time">' + time + '</div>' +
-    '</div></div>';
+  const div = document.createElement('div');
+  div.className = 'msg ' + dir;
+  div.id = 'msg-' + msg.id;
+  div.innerHTML = '<div style="max-width:78%">' +
+    '<div class="msg-label">' + label + '</div>' +
+    '<div class="msg-bubble">' + formatContent(content) + '</div>' +
+    '<div class="msg-time">' + time + '</div></div>';
+  container.appendChild(div);
 }
 
-// --- Send message ---
-async function sendChatMessage() {
+function scrollToBottom() {
+  const c = document.getElementById('chatMessages');
+  requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
+}
+
+// --- Chat: send ---
+async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
+  const token = getToken(); if (!token) return;
 
-  const token = getToken();
-  if (!token) return;
-
-  const indicator = document.getElementById('sendingIndicator');
-  const sendBtn = document.getElementById('sendBtn');
-  sendBtn.disabled = true;
-  indicator.classList.add('show');
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
 
   try {
-    const res = await fetch(API_URL + '/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-      },
-      body: JSON.stringify({ text: text })
+    // Write to messages table (appears via realtime)
+    await supabase.from('messages').insert({direction:'in', content:text, created_at: new Date().toISOString()});
+
+    // Send to CC terminal
+    await fetch(API_URL+'/send', {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({text})
     });
 
-    if (res.status === 401) {
-      localStorage.removeItem('live_api_token');
-      alert('密码错误，请重新输入');
-      return;
-    }
-
-    if (res.ok) {
-      input.value = '';
-      autoResize(input);
-      const container = document.getElementById('chatMessages');
-      const now = formatTime(new Date());
-      container.innerHTML += '<div class="msg out"><div style="max-width:78%">' +
-        '<div class="msg-label">慕兮</div>' +
-        '<div class="msg-bubble">' + formatContent(escapeHtml(text)) + '</div>' +
-        '<div class="msg-time">' + now + ' (发送中)</div>' +
-        '</div></div>';
-      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
-    }
-  } catch (e) {
-    alert('发送失败: ' + e.message);
+    input.value = '';
+    autoResize(input);
+  } catch(e) {
+    alert('发送失败: '+e.message);
   } finally {
-    sendBtn.disabled = false;
-    indicator.classList.remove('show');
+    btn.disabled = false;
   }
 }
 
-// --- Keyboard ---
-document.getElementById('chatInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendChatMessage();
-  }
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
 });
 
-// --- Formatting ---
-function formatContent(html) {
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong style="font-weight:600;color:#e8d5f5">$1</strong>');
-  html = html.replace(/\n/g, '<br>');
-  return html;
+// --- Supabase Realtime ---
+function setupRealtime() {
+  const channel = supabase
+    .channel('messages-realtime')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, payload => {
+      appendMessage(payload.new);
+      scrollToBottom();
+    })
+    .subscribe((status) => {
+      const dot = document.getElementById('realtimeDot');
+      const text = document.getElementById('realtimeStatus');
+      if (status === 'SUBSCRIBED') {
+        dot.className = 'realtime-dot on';
+        text.textContent = '实时连接';
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        dot.className = 'realtime-dot off';
+        text.textContent = '连接断开';
+      } else {
+        dot.className = 'realtime-dot off';
+        text.textContent = '连接中...';
+      }
+    });
 }
-function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-function formatTime(d) {
-  const now = new Date();
-  const h = String(d.getHours()).padStart(2,'0');
-  const m = String(d.getMinutes()).padStart(2,'0');
-  if (d.toDateString() === now.toDateString()) return h+':'+m;
-  const y = new Date(now); y.setDate(y.getDate()-1);
-  if (d.toDateString() === y.toDateString()) return '昨天 '+h+':'+m;
-  return (d.getMonth()+1)+'/'+d.getDate()+' '+h+':'+m;
-}
-function timeAgo(d) {
-  const s = Math.floor((Date.now()-d.getTime())/1000);
-  if (s<60) return '刚刚';
-  if (s<3600) return Math.floor(s/60)+'分钟前';
-  if (s<86400) return Math.floor(s/3600)+'小时前';
-  return Math.floor(s/86400)+'天前';
-}
-function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,80)+'px'; }
 
-// --- Auto refresh ---
-refreshTimer = setInterval(() => { if (currentTab==='chat') loadMessages(); }, 15000);
+// --- Helpers ---
+function formatContent(html){
+  html = html.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:600;color:#e8d5f5">$1</strong>');
+  return html.replace(/\n/g,'<br>');
+}
+function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function formatTime(d){
+  const now=new Date();
+  const h=String(d.getHours()).padStart(2,'0'), m=String(d.getMinutes()).padStart(2,'0');
+  if(d.toDateString()===now.toDateString())return h+':'+m;
+  const y=new Date(now);y.setDate(y.getDate()-1);
+  if(d.toDateString()===y.toDateString())return '昨天 '+h+':'+m;
+  return(d.getMonth()+1)+'/'+d.getDate()+' '+h+':'+m;
+}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,80)+'px';}
 
 // --- Init ---
 loadMessages();
+setupRealtime();
 </script>
 </body>
 </html>
