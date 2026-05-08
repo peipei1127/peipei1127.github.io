@@ -69,12 +69,13 @@ body{
 .msg.out .msg-label{text-align:right}
 .thinking-block{margin-top:6px}
 .thinking-toggle{
-  font-size:11px;color:#7a6a9a;cursor:pointer;display:inline-flex;align-items:center;gap:4px;
-  padding:3px 8px;user-select:none;transition:color .2s;
-  background:rgba(201,160,220,0.08);border-radius:8px;
+  font-size:11px;color:#c9a0dc;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;user-select:none;transition:all .2s;
+  background:linear-gradient(135deg,rgba(201,160,220,0.12),rgba(123,104,238,0.1));
+  border-radius:12px;border:1px solid rgba(201,160,220,0.15);
 }
-.thinking-toggle:active{color:#c9a0dc}
-.thinking-toggle .arrow{display:inline-block;transition:transform .2s;font-size:9px}
+.thinking-toggle:active{background:rgba(201,160,220,0.2)}
+.thinking-toggle .arrow{display:inline-block;transition:transform .2s;font-size:8px}
 .thinking-toggle .arrow.open{transform:rotate(90deg)}
 .thinking-content{
   display:none;font-size:12px;color:#7a7090;
@@ -320,7 +321,7 @@ function appendMessage(msg) {
     const thinkText = escapeHtml(parsed.thinking);
     thinkHtml = '<div class="thinking-block">' +
       '<div class="thinking-toggle" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">' +
-      '<span class="arrow">▶</span> 思维链</div>' +
+      '<span class="arrow">▶</span> ✦ 长晏在想...</div>' +
       '<div class="thinking-content">'+thinkText+'</div></div>';
   }
   const div = document.createElement('div');
