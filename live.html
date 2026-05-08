@@ -455,6 +455,14 @@ function formatTime(d){
 }
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,80)+'px';}
 
+// --- Resume on app switch ---
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    loadMessages();
+    trySetupRealtime();
+  }
+});
+
 // --- Init ---
 loadMessages();
 trySetupRealtime();
