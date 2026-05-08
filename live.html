@@ -160,7 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div class="modal">
     <h3>⚙ 连接设置</h3>
     <label>WebSocket 地址</label>
-    <input type="text" id="wsUrlInput" placeholder="ws://159.223.35.96:9100">
+    <input type="text" id="wsUrlInput" placeholder="wss://ws.changyan.chat">
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeSettings()">取消</button>
       <button class="btn-save" onclick="saveSettings()">保存并重连</button>
@@ -170,8 +170,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <script>
 // --- Config ---
-const DEFAULT_WS_URL = 'ws://159.223.35.96:9100';
+const DEFAULT_WS_URL = 'wss://ws.changyan.chat';
 let wsUrl = localStorage.getItem('live_ws_url') || DEFAULT_WS_URL;
+let sessionId = localStorage.getItem('live_session_id') || ('web-' + Math.random().toString(36).slice(2, 10));
 let ws = null;
 let reconnectTimer = null;
 let reconnectDelay = 3000;
@@ -214,10 +215,11 @@ function connect() {
       const data = JSON.parse(event.data);
       handleMessage(data);
     } catch (e) {
-      // Non-JSON message, display as plain text
       addAIMessage(event.data, null);
     }
   };
+
+  localStorage.setItem('live_session_id', sessionId);
 
   ws.onclose = (event) => {
     setStatus('disconnected');
@@ -273,30 +275,41 @@ function handleConnBarClick() {
 
 // --- Message handling ---
 function handleMessage(data) {
-  if (data.type === 'response') {
+  if (data.type === 'reply') {
     finishStream();
-    addAIMessage(data.content || '', data.thinking || null);
+    addAIMessage(data.text || '', null);
     hideTyping();
-  } else if (data.type === 'chunk') {
+  } else if (data.type === 'stream') {
     handleChunk(data);
-  } else if (data.type === 'thinking') {
-    // Standalone thinking update
-    showTyping();
-    if (streamThinking) {
-      streamThinking.textContent += (data.content || '');
+    if (data.isFinal) finishStream();
+  } else if (data.type === 'tool_status') {
+    if (data.toolStatus === 'calling') showTyping();
+    else if (data.toolStatus === 'done' || data.toolStatus === 'error') hideTyping();
+  } else if (data.type === 'question') {
+    finishStream();
+    addAIMessage(data.question || '', null);
+    if (data.options && data.options.length) {
+      showQuestionOptions(data.questionId, data.options);
     }
-  } else if (data.type === 'status') {
-    if (data.content === 'thinking') showTyping();
-    else hideTyping();
+    hideTyping();
+  } else if (data.type === 'edit') {
+    updateMessage(data.targetMessageId, data.text);
+  } else if (data.type === 'react') {
+    addReaction(data.targetMessageId, data.emoji);
+  } else if (data.type === 'pair_required') {
+    addSystemMessage('需要配对: ' + (data.text || '') + ' 验证码: ' + (data.code || ''));
+  } else if (data.type === 'pong') {
+    // keepalive response
   } else if (data.type === 'error') {
-    addSystemMessage('错误: ' + (data.content || data.message || '未知错误'));
+    addSystemMessage('错误: ' + (data.text || '未知错误'));
     hideTyping();
     finishStream();
-  } else {
-    // Unknown type, treat as response
-    if (data.content) {
-      addAIMessage(data.content, data.thinking || null);
+  } else if (data.type === 'status') {
+    if (data.status === 'disconnected') {
+      addSystemMessage(data.text || '连接断开');
     }
+  } else {
+    if (data.text) addAIMessage(data.text, null);
   }
 }
 
@@ -304,7 +317,6 @@ function handleChunk(data) {
   if (!isStreaming) {
     isStreaming = true;
     showTyping();
-    // Create a streaming bubble
     const msgDiv = document.createElement('div');
     msgDiv.className = 'msg ai';
 
@@ -314,50 +326,14 @@ function handleChunk(data) {
     msgDiv.appendChild(bubble);
     streamBubble = bubble;
 
-    // Thinking block for streaming
-    const thinkBlock = document.createElement('div');
-    thinkBlock.className = 'thinking-block';
-    thinkBlock.style.display = 'none';
-
-    const thinkToggle = document.createElement('div');
-    thinkToggle.className = 'thinking-toggle';
-    thinkToggle.innerHTML = '<span class="arrow">▶</span> 思维链';
-    thinkToggle.onclick = function() {
-      const arrow = this.querySelector('.arrow');
-      const content = this.nextElementSibling;
-      if (content.classList.contains('open')) {
-        content.classList.remove('open');
-        arrow.classList.remove('open');
-      } else {
-        content.classList.add('open');
-        arrow.classList.add('open');
-      }
-    };
-
-    const thinkContent = document.createElement('div');
-    thinkContent.className = 'thinking-content';
-
-    thinkBlock.appendChild(thinkToggle);
-    thinkBlock.appendChild(thinkContent);
-    msgDiv.appendChild(thinkBlock);
-
-    streamThinking = thinkContent;
-    streamBubble._thinkBlock = thinkBlock;
-    streamBubble._thinkContent = thinkContent;
-
     messagesEl.appendChild(msgDiv);
   }
 
-  if (data.content) {
+  if (data.text) {
     streamBubble.innerHTML = formatContent(
-      (streamBubble._rawText || '') + data.content
+      (streamBubble._rawText || '') + data.text
     );
-    streamBubble._rawText = (streamBubble._rawText || '') + data.content;
-  }
-
-  if (data.thinking) {
-    streamBubble._thinkBlock.style.display = 'block';
-    streamBubble._thinkContent.textContent += data.thinking;
+    streamBubble._rawText = (streamBubble._rawText || '') + data.text;
   }
 
   scrollToBottom();
@@ -379,7 +355,7 @@ function sendMessage() {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
   addUserMessage(text);
-  ws.send(JSON.stringify({ type: 'message', content: text }));
+  ws.send(JSON.stringify({ type: 'message', sessionId: sessionId, text: text }));
 
   inputEl.value = '';
   autoResize(inputEl);
@@ -535,6 +511,55 @@ document.getElementById('settingsModal').addEventListener('click', (e) => {
     closeSettings();
   }
 });
+
+// --- Question options ---
+function showQuestionOptions(questionId, options) {
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    btn.title = opt.description || '';
+    btn.style.cssText = 'background:rgba(123,61,174,0.3);border:1px solid rgba(201,160,220,0.3);color:#e0d5ea;padding:6px 14px;border-radius:16px;font-size:13px;cursor:pointer';
+    btn.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'question_answer', sessionId, questionId, selected: opt.label }));
+      }
+      div.remove();
+      addUserMessage(opt.label);
+    };
+    div.appendChild(btn);
+  });
+  messagesEl.appendChild(div);
+  scrollToBottom();
+}
+
+function updateMessage(messageId, text) {
+  // For edit messages, update the last AI bubble
+  const bubbles = messagesEl.querySelectorAll('.msg.ai .msg-bubble');
+  if (bubbles.length > 0) {
+    bubbles[bubbles.length - 1].innerHTML = formatContent(text);
+  }
+}
+
+function addReaction(messageId, emoji) {
+  const bubbles = messagesEl.querySelectorAll('.msg.ai .msg-bubble');
+  if (bubbles.length > 0) {
+    const last = bubbles[bubbles.length - 1];
+    const span = document.createElement('span');
+    span.style.cssText = 'display:inline-block;margin-top:4px;font-size:16px';
+    span.textContent = emoji;
+    last.appendChild(document.createElement('br'));
+    last.appendChild(span);
+  }
+}
+
+// --- Keepalive ---
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'ping', sessionId }));
+  }
+}, 30000);
 
 // --- Init ---
 connect();
