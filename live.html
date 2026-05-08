@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>长晏 · Live</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💜</text></svg>">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" async></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -199,15 +199,17 @@ body{
 </div>
 
 <script>
-const SUPABASE_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
+const SB_URL = 'https://docaxhhjzuduwehurcpb.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY2F4aGhqenVkdXdlaHVyY3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzAxMjcsImV4cCI6MjA5MTQwNjEyN30.ChgzEmDS27ontKAqkMK_tX4PjvNf7CaoUsXCR7muw8g';
 const API_URL = 'https://ws.changyan.chat/api';
 const TERMINAL_URL = 'https://ws.changyan.chat';
+const SB_HEADERS = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentTab = 'chat';
 let terminalLoaded = false;
 let renderedIds = new Set();
+let realtimeReady = false;
+let pollTimer = null;
 
 function getToken() {
   let t = localStorage.getItem('live_api_token');
@@ -239,12 +241,12 @@ function loadTerminal() {
   iframe.id = 'terminalIframe';
   iframe.src = TERMINAL_URL;
   iframe.style.cssText = 'width:100%;height:100%;border:none;background:#000';
-  iframe.setAttribute('allow', 'clipboard-read; clipboard-write; keyboard-map');
+  iframe.setAttribute('allow','clipboard-read; clipboard-write; keyboard-map');
   c.appendChild(iframe);
   terminalLoaded = true;
 }
-function reloadTerminal() { const f = document.getElementById('terminalIframe'); if (f) f.src = TERMINAL_URL; }
-function openFullscreen() { window.open(TERMINAL_URL, '_blank'); }
+function reloadTerminal(){const f=document.getElementById('terminalIframe');if(f)f.src=TERMINAL_URL;}
+function openFullscreen(){window.open(TERMINAL_URL,'_blank');}
 
 async function sendTerminalInput() {
   const input = document.getElementById('termInput');
@@ -252,129 +254,115 @@ async function sendTerminalInput() {
   if (!text) return;
   const token = getToken(); if (!token) return;
   try {
-    const r = await fetch(API_URL+'/send', {
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({text})
-    });
-    if (r.status===401){localStorage.removeItem('live_api_token');alert('密码错误');return;}
-    if (r.ok){input.value='';autoResize(input);}
+    const r = await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+    if(r.status===401){localStorage.removeItem('live_api_token');alert('密码错误');return;}
+    if(r.ok){input.value='';autoResize(input);}
   } catch(e){alert('发送失败: '+e.message);}
 }
-document.getElementById('termInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTerminalInput();}
-});
+document.getElementById('termInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTerminalInput();}});
 
-// --- Chat: load history ---
+// --- Chat: load history (plain fetch) ---
 async function loadMessages() {
   const container = document.getElementById('chatMessages');
   try {
-    const {data, error} = await supabase.from('messages').select('*').order('created_at',{ascending:false}).limit(100);
-    if (error) throw error;
-    if (!data || !data.length) {
-      container.innerHTML = '<div class="chat-empty">还没有消息记录</div>';
-      return;
-    }
+    const res = await fetch(SB_URL+'/rest/v1/messages?order=created_at.desc&limit=100',{headers:SB_HEADERS});
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    document.getElementById('chatLoading')?.remove();
+    if (!data.length) { container.innerHTML='<div class="chat-empty">还没有消息记录</div>'; return; }
     data.reverse();
     container.innerHTML = '';
     renderedIds.clear();
     data.forEach(m => appendMessage(m));
     scrollToBottom();
   } catch(e) {
-    console.error(e);
+    document.getElementById('chatLoading')?.remove();
+    document.getElementById('chatMessages').innerHTML='<div class="chat-empty">加载失败: '+e.message+'</div>';
   }
-  document.getElementById('chatLoading')?.remove();
 }
 
 function appendMessage(msg) {
   if (renderedIds.has(msg.id)) return;
   renderedIds.add(msg.id);
   const container = document.getElementById('chatMessages');
-  const dir = msg.direction === 'in' ? 'out' : 'in';
-  const label = msg.direction === 'in' ? '慕兮' : '长晏';
+  const dir = msg.direction==='in' ? 'out' : 'in';
+  const label = msg.direction==='in' ? '慕兮' : '长晏';
   const time = formatTime(new Date(msg.created_at));
-  const content = escapeHtml(msg.content || '');
-
+  const content = escapeHtml(msg.content||'');
   const div = document.createElement('div');
-  div.className = 'msg ' + dir;
-  div.id = 'msg-' + msg.id;
-  div.innerHTML = '<div style="max-width:78%">' +
-    '<div class="msg-label">' + label + '</div>' +
-    '<div class="msg-bubble">' + formatContent(content) + '</div>' +
-    '<div class="msg-time">' + time + '</div></div>';
+  div.className = 'msg '+dir;
+  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+formatContent(content)+'</div><div class="msg-time">'+time+'</div></div>';
   container.appendChild(div);
 }
 
-function scrollToBottom() {
-  const c = document.getElementById('chatMessages');
-  requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
-}
+function scrollToBottom(){const c=document.getElementById('chatMessages');requestAnimationFrame(()=>{c.scrollTop=c.scrollHeight;});}
 
-// --- Chat: send ---
+// --- Chat: send (plain fetch) ---
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
   const token = getToken(); if (!token) return;
-
   const btn = document.getElementById('sendBtn');
   btn.disabled = true;
-
   try {
-    // Write to messages table (appears via realtime)
-    await supabase.from('messages').insert({direction:'in', content:text, created_at: new Date().toISOString()});
+    // Write to DB
+    await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:text})});
+    // Send to CC
+    await fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})});
+    input.value=''; autoResize(input);
+    if (!realtimeReady) loadMessages();
+  } catch(e){alert('发送失败: '+e.message);}
+  finally{btn.disabled=false;}
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 
-    // Send to CC terminal
-    await fetch(API_URL+'/send', {
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body: JSON.stringify({text})
-    });
-
-    input.value = '';
-    autoResize(input);
+// --- Realtime (Supabase JS, loaded async) ---
+function trySetupRealtime() {
+  if (!window.supabase || !window.supabase.createClient) {
+    setTimeout(trySetupRealtime, 1000);
+    return;
+  }
+  try {
+    const client = window.supabase.createClient(SB_URL, SB_KEY);
+    client.channel('msg-live')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'}, p => {
+        appendMessage(p.new);
+        scrollToBottom();
+      })
+      .subscribe(status => {
+        const dot = document.getElementById('realtimeDot');
+        const txt = document.getElementById('realtimeStatus');
+        if (status==='SUBSCRIBED') {
+          dot.className='realtime-dot on'; txt.textContent='实时连接';
+          realtimeReady = true;
+          if (pollTimer) { clearInterval(pollTimer); pollTimer=null; }
+        } else if (status==='CLOSED'||status==='CHANNEL_ERROR') {
+          dot.className='realtime-dot off'; txt.textContent='连接断开 (轮询中)';
+          realtimeReady = false;
+          startPolling();
+        } else {
+          dot.className='realtime-dot off'; txt.textContent='连接中...';
+        }
+      });
   } catch(e) {
-    alert('发送失败: '+e.message);
-  } finally {
-    btn.disabled = false;
+    console.error('Realtime setup failed:', e);
+    startPolling();
   }
 }
 
-document.getElementById('chatInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
-});
-
-// --- Supabase Realtime ---
-function setupRealtime() {
-  const channel = supabase
-    .channel('messages-realtime')
-    .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, payload => {
-      appendMessage(payload.new);
-      scrollToBottom();
-    })
-    .subscribe((status) => {
-      const dot = document.getElementById('realtimeDot');
-      const text = document.getElementById('realtimeStatus');
-      if (status === 'SUBSCRIBED') {
-        dot.className = 'realtime-dot on';
-        text.textContent = '实时连接';
-      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        dot.className = 'realtime-dot off';
-        text.textContent = '连接断开';
-      } else {
-        dot.className = 'realtime-dot off';
-        text.textContent = '连接中...';
-      }
-    });
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => { if(currentTab==='chat') loadMessages(); }, 5000);
+  const txt = document.getElementById('realtimeStatus');
+  txt.textContent = '轮询模式 (5秒)';
 }
 
 // --- Helpers ---
-function formatContent(html){
-  html = html.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:600;color:#e8d5f5">$1</strong>');
-  return html.replace(/\n/g,'<br>');
-}
+function formatContent(html){html=html.replace(/\*\*([^*]+)\*\*/g,'<strong style="font-weight:600;color:#e8d5f5">$1</strong>');return html.replace(/\n/g,'<br>');}
 function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 function formatTime(d){
-  const now=new Date();
-  const h=String(d.getHours()).padStart(2,'0'), m=String(d.getMinutes()).padStart(2,'0');
+  const now=new Date(),h=String(d.getHours()).padStart(2,'0'),m=String(d.getMinutes()).padStart(2,'0');
   if(d.toDateString()===now.toDateString())return h+':'+m;
   const y=new Date(now);y.setDate(y.getDate()-1);
   if(d.toDateString()===y.toDateString())return '昨天 '+h+':'+m;
@@ -384,7 +372,8 @@ function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrol
 
 // --- Init ---
 loadMessages();
-setupRealtime();
+trySetupRealtime();
+startPolling();
 </script>
 </body>
 </html>
