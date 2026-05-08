@@ -348,7 +348,18 @@ function appendMessage(msg) {
   } else {
     bubbleContent = formatContent(content);
   }
-  div.innerHTML = '<div style="max-width:78%"><div class="msg-label">'+label+'</div><div class="msg-bubble">'+bubbleContent+'</div>'+thinkHtml+'<div class="msg-time">'+time+'</div></div>';
+  const prev = container.lastElementChild;
+  const prevDir = prev ? prev.dataset.dir : '';
+  const prevTime = prev ? (prev.dataset.ts||'') : '';
+  const sameDir = prevDir === msg.direction;
+  const closeTime = sameDir && prevTime && (new Date(msg.created_at) - new Date(prevTime)) < 120000;
+  const showLabel = !sameDir;
+  const showTime = !closeTime;
+  if (closeTime && prev) { const pt = prev.querySelector('.msg-time'); if (pt) pt.style.display='none'; }
+  const labelHtml = showLabel ? '<div class="msg-label">'+label+'</div>' : '';
+  div.dataset.dir = msg.direction;
+  div.dataset.ts = msg.created_at;
+  div.innerHTML = '<div style="max-width:78%">'+labelHtml+'<div class="msg-bubble">'+bubbleContent+'</div>'+thinkHtml+(showTime?'<div class="msg-time">'+time+'</div>':'')+'</div>';
   container.appendChild(div);
 }
 
