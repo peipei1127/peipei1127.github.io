@@ -369,28 +369,7 @@ async function sendMessage() {
   } catch(e){alert('发送失败: '+e.message);}
   finally{btn.disabled=false;}
 }
-let enterDownTime = 0;
-const chatInputEl = document.getElementById('chatInput');
-chatInputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    enterDownTime = Date.now();
-    e.preventDefault();
-  }
-});
-chatInputEl.addEventListener('keyup', e => {
-  if (e.key === 'Enter') {
-    const held = Date.now() - enterDownTime;
-    if (held > 500) {
-      const pos = chatInputEl.selectionStart;
-      const val = chatInputEl.value;
-      chatInputEl.value = val.slice(0, pos) + '\n' + val.slice(pos);
-      chatInputEl.selectionStart = chatInputEl.selectionEnd = pos + 1;
-      autoResize(chatInputEl);
-    } else {
-      sendMessage();
-    }
-  }
-});
+document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
 
 // --- Chat: send image ---
 async function sendImage(fileInput) {
