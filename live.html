@@ -383,29 +383,20 @@ function appendMessage(msg) {
 function scrollToBottom(){const c=document.getElementById('chatMessages');requestAnimationFrame(()=>{c.scrollTop=c.scrollHeight;});}
 
 // --- Chat: send text ---
-async function sendMessage() {
+function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
   const token = getToken(); if (!token) return;
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = true;
-  const doSend = async () => {
-    await Promise.all([
-      fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:text})}),
-      fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})})
-    ]);
-  };
-  try {
-    await doSend();
-    input.value=''; autoResize(input);
-    playSendSound();
-    if (!realtimeReady) loadMessages();
-  } catch(e){
-    try { await doSend(); input.value=''; autoResize(input); playSendSound(); }
-    catch(e2){}
-  }
-  finally{btn.disabled=false;}
+
+  input.value=''; autoResize(input);
+  playSendSound();
+
+  appendMessage({id:'local-'+Date.now(), direction:'in', content:text, created_at:new Date().toISOString()});
+  scrollToBottom();
+
+  fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({direction:'in',content:text})}).catch(()=>{});
+  fetch(API_URL+'/send',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({text})}).catch(()=>{});
 }
 document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
 
