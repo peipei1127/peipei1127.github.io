@@ -299,10 +299,11 @@ async function loadMessages() {
     const data = await res.json();
     document.getElementById('chatLoading')?.remove();
     if (!data.length) { container.innerHTML='<div class="chat-empty">还没有消息记录</div>'; return; }
-    data.reverse();
+    const filtered = clearAfter ? data.filter(m => m.created_at >= clearAfter) : data;
+    filtered.reverse();
     container.innerHTML = '';
     renderedIds.clear();
-    data.forEach(m => appendMessage(m));
+    filtered.forEach(m => appendMessage(m));
     scrollToBottom();
   } catch(e) {
     document.getElementById('chatLoading')?.remove();
@@ -395,12 +396,13 @@ function sendMessage() {
 }
 document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
 
-let clearAfter = null;
+let clearAfter = localStorage.getItem('clearAfter') || null;
 function clearChat() {
   document.getElementById('chatMessages').innerHTML = '';
   renderedIds.clear();
   recentSent = {};
   clearAfter = new Date().toISOString();
+  localStorage.setItem('clearAfter', clearAfter);
 }
 
 // --- Chat: send image ---
