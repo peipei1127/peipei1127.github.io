@@ -174,7 +174,7 @@ body{
         <span>在线</span>
       </div>
     </div>
-    <button class="header-action" onclick="loadMessages()" title="刷新">↻</button>
+    <button class="header-action" onclick="clearChat()" title="清空">🧹</button>
   </div>
 
   <div class="tab-content">
@@ -387,6 +387,11 @@ async function sendMessage() {
   finally{btn.disabled=false;}
 }
 document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
+
+function clearChat() {
+  document.getElementById('chatMessages').innerHTML = '';
+  renderedIds.clear();
+}
 
 // --- Chat: send image ---
 async function sendImages(fileInput) {
