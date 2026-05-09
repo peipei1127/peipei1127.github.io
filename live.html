@@ -329,20 +329,10 @@ function appendMessage(msg) {
   let autoThinking = parsed.thinking || '';
 
   if (msg.direction === 'out' && !parsed.thinking) {
-    const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|\+\s*\d+|^\s*[-+]{3}\s|token|Searching|Brewing|Propagating|pattern/i;
-    const lines = displayText.split('\n');
-    const textLines = [];
-    const codeLines = [];
-    lines.forEach(l => {
-      if (codePatterns.test(l)) codeLines.push(l);
-      else textLines.push(l);
-    });
-    if (codeLines.length > 0 && textLines.length > 0) {
-      displayText = textLines.join('\n').trim();
-      autoThinking = codeLines.join('\n').trim();
-    } else if (codeLines.length > 0 && textLines.length === 0) {
+    const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|Searching|Brewing|Propagating|commit |push |\.html|\.py|\.js|systemctl|token|Co-Authored/i;
+    if (codePatterns.test(displayText)) {
+      autoThinking = displayText;
       displayText = '🔧 正在干活...';
-      autoThinking = codeLines.join('\n').trim();
     }
   }
 
