@@ -317,8 +317,12 @@ function parseThinking(raw) {
   return { thinking: null, text: cleaned };
 }
 
+let recentSent = {};
 function appendMessage(msg) {
   if (renderedIds.has(msg.id)) return;
+  const contentKey = (msg.direction||'')+':'+(msg.content||'').slice(0,50);
+  if (recentSent[contentKey] && Date.now() - recentSent[contentKey] < 15000) return;
+  recentSent[contentKey] = Date.now();
   renderedIds.add(msg.id);
   const container = document.getElementById('chatMessages');
   const dir = msg.direction==='in' ? 'out' : 'in';
