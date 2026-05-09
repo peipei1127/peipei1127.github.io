@@ -299,7 +299,7 @@ async function loadMessages() {
     const data = await res.json();
     document.getElementById('chatLoading')?.remove();
     if (!data.length) { container.innerHTML='<div class="chat-empty">还没有消息记录</div>'; return; }
-    const filtered = clearAfter ? data.filter(m => m.created_at >= clearAfter) : data;
+    const filtered = clearAfter ? data.filter(m => new Date(m.created_at) >= new Date(clearAfter)) : data;
     filtered.reverse();
     container.innerHTML = '';
     renderedIds.clear();
@@ -322,7 +322,7 @@ function parseThinking(raw) {
 let recentSent = {};
 function appendMessage(msg) {
   if (renderedIds.has(msg.id)) return;
-  if (clearAfter && msg.created_at && msg.created_at < clearAfter) return;
+  if (clearAfter && msg.created_at && new Date(msg.created_at) < new Date(clearAfter)) return;
   const contentKey = (msg.direction||'')+':'+(msg.content||'').slice(0,50);
   if (recentSent[contentKey] && Date.now() - recentSent[contentKey] < 15000) return;
   recentSent[contentKey] = Date.now();
