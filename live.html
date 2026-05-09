@@ -325,10 +325,31 @@ function appendMessage(msg) {
   const label = msg.direction==='in' ? '慕兮' : '长晏';
   const time = formatTime(new Date(msg.created_at));
   const parsed = parseThinking(msg.content||'');
-  const content = escapeHtml(parsed.text);
+  let displayText = parsed.text;
+  let autoThinking = parsed.thinking || '';
+
+  if (msg.direction === 'out' && !parsed.thinking) {
+    const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|\+\s*\d+|^\s*[-+]{3}\s|token|Searching|Brewing|Propagating|pattern/i;
+    const lines = displayText.split('\n');
+    const textLines = [];
+    const codeLines = [];
+    lines.forEach(l => {
+      if (codePatterns.test(l)) codeLines.push(l);
+      else textLines.push(l);
+    });
+    if (codeLines.length > 0 && textLines.length > 0) {
+      displayText = textLines.join('\n').trim();
+      autoThinking = codeLines.join('\n').trim();
+    } else if (codeLines.length > 0 && textLines.length === 0) {
+      displayText = '🔧 正在干活...';
+      autoThinking = codeLines.join('\n').trim();
+    }
+  }
+
+  const content = escapeHtml(displayText);
   let thinkHtml = '';
-  if (parsed.thinking) {
-    const thinkText = escapeHtml(parsed.thinking);
+  if (autoThinking) {
+    const thinkText = escapeHtml(autoThinking);
     thinkHtml = '<div class="thinking-block">' +
       '<div class="thinking-toggle" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">' +
       '<span class="arrow">▶</span> 💭🫧</div>' +
