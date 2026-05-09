@@ -320,6 +320,7 @@ function parseThinking(raw) {
 let recentSent = {};
 function appendMessage(msg) {
   if (renderedIds.has(msg.id)) return;
+  if (clearAfter && msg.created_at && msg.created_at < clearAfter) return;
   const contentKey = (msg.direction||'')+':'+(msg.content||'').slice(0,50);
   if (recentSent[contentKey] && Date.now() - recentSent[contentKey] < 15000) return;
   recentSent[contentKey] = Date.now();
@@ -394,9 +395,12 @@ function sendMessage() {
 }
 document.getElementById('chatInput').addEventListener('input', e => { autoResize(e.target); });
 
+let clearAfter = null;
 function clearChat() {
   document.getElementById('chatMessages').innerHTML = '';
   renderedIds.clear();
+  recentSent = {};
+  clearAfter = new Date().toISOString();
 }
 
 // --- Chat: send image ---
