@@ -303,6 +303,7 @@ async function loadMessages() {
     filtered.reverse();
     container.innerHTML = '';
     renderedIds.clear();
+    recentSent = {};
     filtered.forEach(m => appendMessage(m));
     scrollToBottom();
   } catch(e) {
