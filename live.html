@@ -346,7 +346,7 @@ function appendMessage(msg) {
     const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|Searching|Brewing|Propagating|commit |push |\.html|\.py|\.js|systemctl|token|Co-Authored/i;
     const chineseChars = (displayText.match(/[一-鿿]/g) || []).length;
     const totalChars = displayText.replace(/\s/g, '').length;
-    const isMostlyEnglish = totalChars > 3 && chineseChars / totalChars < 0.3;
+    const isMostlyEnglish = totalChars > 3 && chineseChars === 0;
     if (codePatterns.test(displayText)) {
       autoThinking = displayText;
       displayText = '🔧 正在干活...';
