@@ -344,9 +344,15 @@ function appendMessage(msg) {
 
   if (msg.direction === 'out' && !parsed.thinking) {
     const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|Searching|Brewing|Propagating|commit |push |\.html|\.py|\.js|systemctl|token|Co-Authored/i;
+    const chineseChars = (displayText.match(/[一-鿿]/g) || []).length;
+    const totalChars = displayText.replace(/\s/g, '').length;
+    const isMostlyEnglish = totalChars > 3 && chineseChars / totalChars < 0.3;
     if (codePatterns.test(displayText)) {
       autoThinking = displayText;
       displayText = '🔧 正在干活...';
+    } else if (isMostlyEnglish) {
+      autoThinking = displayText;
+      displayText = '💭 长晏在想...';
     }
   }
 
