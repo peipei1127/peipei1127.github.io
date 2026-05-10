@@ -347,7 +347,11 @@ function appendMessage(msg) {
     const chineseChars = (displayText.match(/[一-鿿]/g) || []).length;
     const totalChars = displayText.replace(/\s/g, '').length;
     const isMostlyEnglish = totalChars > 3 && chineseChars === 0;
-    if (codePatterns.test(displayText)) {
+    const startsWithMarker = displayText.trimStart().startsWith('//');
+    if (startsWithMarker) {
+      autoThinking = displayText.replace(/^\/\/\s*/, '');
+      displayText = '💭 长晏在想...';
+    } else if (codePatterns.test(displayText)) {
       autoThinking = displayText;
       displayText = '🔧 正在干活...';
     } else if (isMostlyEnglish) {
