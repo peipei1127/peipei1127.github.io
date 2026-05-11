@@ -334,7 +334,7 @@ function streamResponse(text, token) {
         bubble.innerHTML = formatContent(escapeHtml(responseText));
       }
 
-      thinkingEl.style.display = 'none';
+      thinkingEl.remove();
       if (thinkingText) {
         const block = document.createElement('div');
         block.className = 'thinking-block';
