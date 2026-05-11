@@ -390,7 +390,8 @@ function appendMessage(msg) {
   const labelHtml = showLabel ? '<div class="msg-label">'+label+'</div>' : '';
   div.dataset.dir = msg.direction;
   div.dataset.ts = msg.created_at;
-  div.innerHTML = '<div style="max-width:78%">'+labelHtml+'<div class="msg-bubble">'+bubbleContent+'</div>'+thinkHtml+(showTime?'<div class="msg-time">'+time+'</div>':'')+'</div>';
+  const bubbleHtml = bubbleContent ? '<div class="msg-bubble">'+bubbleContent+'</div>' : '';
+  div.innerHTML = '<div style="max-width:78%">'+labelHtml+bubbleHtml+thinkHtml+(showTime?'<div class="msg-time">'+time+'</div>':'')+'</div>';
   container.appendChild(div);
 }
 
