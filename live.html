@@ -444,7 +444,9 @@ async function sendImages(fileInput) {
     }
 
     for (const url of urls) {
-      await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+url+'[/img]'})});
+      const res = await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+url+'[/img]'})});
+      const rows = await res.json();
+      if (rows && rows[0]) appendMessage(rows[0]);
     }
 
     const token = getToken();
