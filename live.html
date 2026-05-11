@@ -377,7 +377,7 @@ function appendMessage(msg) {
   let bubbleContent;
   if (isImg) {
     const imgUrl = parsed.text.replace(/^\[img\]/,'').replace(/\[\/img\]$/,'');
-    bubbleContent = '<img class="msg-img" src="'+imgUrl+'" onclick="window.open(this.src,\'_blank\')" loading="lazy">';
+    bubbleContent = '<img class="msg-img" src="'+imgUrl+'" alt="图片" onerror="this.alt=\'图片加载失败\';this.style.minHeight=\'40px\';this.style.background=\'rgba(255,100,100,0.2)\'" onclick="window.open(this.src,\'_blank\')">';
   } else {
     bubbleContent = formatContent(content);
   }
@@ -448,7 +448,7 @@ async function sendImages(fileInput) {
     for (const url of urls) {
       const res = await fetch(SB_URL+'/rest/v1/messages',{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify({direction:'in',content:'[img]'+url+'[/img]'})});
       const rows = await res.json();
-      if (rows && rows[0]) appendMessage(rows[0]);
+      if (rows && rows[0]) { appendMessage(rows[0]); scrollToBottom(); }
     }
 
     const token = getToken();
