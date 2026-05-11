@@ -257,9 +257,21 @@ function streamResponse(text, token) {
         threadId = evt.thread_id;
         localStorage.setItem('v2_thread_id', threadId);
       }
+      else if (evt.type === 'thinking_delta') {
+        thinkingText += evt.text;
+        setStatus('thinking', '思考中... 💭');
+      }
       else if (evt.type === 'thinking') {
         thinkingText = evt.text;
         setStatus('thinking', '思考中... 💭');
+      }
+      else if (evt.type === 'text_delta') {
+        responseText += evt.text;
+        cursor.remove();
+        bubble.innerHTML = formatContent(escapeHtml(responseText));
+        bubble.appendChild(cursor);
+        setStatus('on', '回复中...');
+        scrollToBottom();
       }
       else if (evt.type === 'text') {
         responseText = evt.text;
