@@ -84,6 +84,8 @@ body{
 .thinking-content::-webkit-scrollbar{width:2px}
 .thinking-content::-webkit-scrollbar-thumb{background:rgba(201,160,220,0.15);border-radius:2px}
 .thinking-content.open{display:block}
+.streaming-cursor{display:inline-block;width:2px;height:14px;background:#c9a0dc;margin-left:2px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .chat-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#3a3a5a;font-size:13px;text-align:center;padding:40px}
 .chat-status-bar{
   padding:6px 16px;font-size:10px;text-align:center;color:#4a5a6a;
@@ -547,10 +549,146 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// --- Thinking SSE stream (from stream-parser) ---
+let thinkingSource = null;
+let liveThinkingEl = null;
+let liveBubbleEl = null;
+let liveInner = null;
+let liveThinkingText = '';
+let liveResponseText = '';
+
+function connectThinking() {
+  if (thinkingSource) { try { thinkingSource.close(); } catch{} }
+  thinkingSource = new EventSource('https://ws.changyan.chat/thinking/stream');
+
+  thinkingSource.onopen = () => {
+    const dot = document.getElementById('realtimeDot');
+    if (dot) dot.className = 'realtime-dot on';
+  };
+
+  thinkingSource.addEventListener('message', (e) => {
+    try {
+      const evt = JSON.parse(e.data);
+      handleThinkingEvent(evt);
+    } catch {}
+  });
+
+  thinkingSource.onerror = () => {
+    setTimeout(connectThinking, 5000);
+  };
+}
+
+function ensureLiveBubble() {
+  if (liveInner) return;
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg in';
+  div.id = 'live-stream-msg';
+  liveInner = document.createElement('div');
+  liveInner.style.maxWidth = '78%';
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = '长晏';
+  liveThinkingEl = document.createElement('div');
+  liveThinkingEl.className = 'thinking-content open';
+  liveThinkingEl.style.display = 'none';
+  liveThinkingEl.style.marginBottom = '6px';
+  liveThinkingEl.style.maxHeight = '120px';
+  liveBubbleEl = document.createElement('div');
+  liveBubbleEl.className = 'msg-bubble';
+  liveBubbleEl.innerHTML = '<span class="streaming-cursor"></span>';
+  liveInner.appendChild(label);
+  liveInner.appendChild(liveThinkingEl);
+  liveInner.appendChild(liveBubbleEl);
+  div.appendChild(liveInner);
+  container.appendChild(div);
+  scrollToBottom();
+}
+
+function removeLiveBubble() {
+  const el = document.getElementById('live-stream-msg');
+  if (el) el.remove();
+  liveInner = null;
+  liveThinkingEl = null;
+  liveBubbleEl = null;
+  liveThinkingText = '';
+  liveResponseText = '';
+}
+
+function handleThinkingEvent(evt) {
+  if (evt.type === 'thinking_start') {
+    removeLiveBubble();
+    ensureLiveBubble();
+    liveThinkingText = '';
+    liveResponseText = '';
+  }
+  else if (evt.type === 'thinking_delta') {
+    ensureLiveBubble();
+    liveThinkingText += evt.text;
+    liveThinkingEl.style.display = 'block';
+    liveThinkingEl.textContent = '💭 ' + liveThinkingText.slice(-300);
+    scrollToBottom();
+  }
+  else if (evt.type === 'thinking_end') {
+    if (liveThinkingEl) liveThinkingEl.style.display = 'none';
+  }
+  else if (evt.type === 'text_start') {
+    ensureLiveBubble();
+    if (liveThinkingEl) liveThinkingEl.style.display = 'none';
+  }
+  else if (evt.type === 'text_delta') {
+    ensureLiveBubble();
+    liveResponseText += evt.text;
+    liveBubbleEl.innerHTML = formatContent(escapeHtml(liveResponseText));
+    scrollToBottom();
+  }
+  else if (evt.type === 'text_end') {
+    // keep showing until turn_end
+  }
+  else if (evt.type === 'tool_use') {
+    ensureLiveBubble();
+    const toolDiv = document.createElement('div');
+    toolDiv.style.cssText = 'font-size:11px;color:#b0d0ff;padding:3px 10px;margin-top:4px;background:rgba(100,150,255,0.1);border-radius:10px;display:inline-block';
+    toolDiv.textContent = '🔧 ' + (evt.friendly_name || evt.tool_name);
+    liveInner.appendChild(toolDiv);
+    scrollToBottom();
+  }
+  else if (evt.type === 'turn_end' || evt.type === 'done') {
+    if (liveResponseText && liveInner) {
+      // Add thinking toggle if there was thinking
+      if (liveThinkingText) {
+        const block = document.createElement('div');
+        block.className = 'thinking-block';
+        block.innerHTML = '<div class="thinking-toggle" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">' +
+          '<span class="arrow">▶</span> 💭 思考过程</div>' +
+          '<div class="thinking-content">' + escapeHtml(liveThinkingText) + '</div>';
+        liveInner.appendChild(block);
+      }
+      const time = document.createElement('div');
+      time.className = 'msg-time';
+      time.textContent = formatTime(new Date());
+      liveInner.appendChild(time);
+      playReceiveSound();
+    }
+    // Reset but keep the rendered message
+    const el = document.getElementById('live-stream-msg');
+    if (el) el.removeAttribute('id');
+    liveInner = null;
+    liveThinkingEl = null;
+    liveBubbleEl = null;
+    liveThinkingText = '';
+    liveResponseText = '';
+  }
+  else if (evt.type === 'session_end') {
+    removeLiveBubble();
+  }
+}
+
 // --- Init ---
 loadMessages();
 trySetupRealtime();
 startPolling();
+connectThinking();
 </script>
 </body>
 </html>
