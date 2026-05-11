@@ -190,6 +190,20 @@ function sendMessage() {
   streamResponse(text, token);
 }
 
+function friendlyTool(name) {
+  const map = {
+    'Bash': '执行命令', 'Read': '读取文件', 'Edit': '编辑文件', 'Write': '写入文件',
+    'Grep': '搜索代码', 'Glob': '查找文件', 'WebSearch': '搜索网页', 'WebFetch': '抓取网页',
+    'CronCreate': '创建定时', 'CronDelete': '删除定时', 'CronList': '查看定时',
+  };
+  if (map[name]) return map[name];
+  if (name.includes('Supabase')) return '数据库·' + name.split('__').pop();
+  if (name.includes('telegram')) return 'TG·' + name.split('__').pop();
+  if (name.includes('Notion')) return 'Notion·' + name.split('__').pop().replace('notion-','');
+  if (name.includes('Gmail')) return '邮件·' + name.split('__').pop();
+  return name.split('__').pop() || name;
+}
+
 function streamResponse(text, token) {
   sending = true;
   document.getElementById('sendBtn').disabled = true;
@@ -205,6 +219,13 @@ function streamResponse(text, token) {
   label.className = 'msg-label';
   label.textContent = '长晏';
 
+  // Thinking element (shown inline during streaming)
+  const thinkingEl = document.createElement('div');
+  thinkingEl.className = 'thinking-content open';
+  thinkingEl.style.display = 'none';
+  thinkingEl.style.marginBottom = '6px';
+  thinkingEl.style.maxHeight = '120px';
+
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   const cursor = document.createElement('span');
@@ -212,6 +233,7 @@ function streamResponse(text, token) {
   bubble.appendChild(cursor);
 
   inner.appendChild(label);
+  inner.appendChild(thinkingEl);
   inner.appendChild(bubble);
   aiMsg.appendChild(inner);
   container.appendChild(aiMsg);
@@ -259,13 +281,18 @@ function streamResponse(text, token) {
       }
       else if (evt.type === 'thinking_delta') {
         thinkingText += evt.text;
+        thinkingEl.style.display = 'block';
+        thinkingEl.textContent = '💭 ' + thinkingText.slice(-200);
         setStatus('thinking', '思考中... 💭');
+        scrollToBottom();
       }
       else if (evt.type === 'thinking') {
         thinkingText = evt.text;
-        setStatus('thinking', '思考中... 💭');
       }
       else if (evt.type === 'text_delta') {
+        if (thinkingEl.style.display !== 'none') {
+          thinkingEl.style.display = 'none';
+        }
         responseText += evt.text;
         cursor.remove();
         bubble.innerHTML = formatContent(escapeHtml(responseText));
@@ -274,6 +301,7 @@ function streamResponse(text, token) {
         scrollToBottom();
       }
       else if (evt.type === 'text') {
+        thinkingEl.style.display = 'none';
         responseText = evt.text;
         cursor.remove();
         bubble.innerHTML = formatContent(escapeHtml(responseText));
@@ -282,7 +310,7 @@ function streamResponse(text, token) {
         scrollToBottom();
       }
       else if (evt.type === 'tool_use') {
-        setStatus('thinking', '🔧 ' + evt.tool_name + '...');
+        setStatus('thinking', '🔧 ' + friendlyTool(evt.tool_name) + '...');
         toolBlocks.push({ name: evt.tool_name, id: evt.tool_use_id, input: evt.input, result: '' });
       }
       else if (evt.type === 'tool_result') {
@@ -306,10 +334,11 @@ function streamResponse(text, token) {
         bubble.innerHTML = formatContent(escapeHtml(responseText));
       }
 
+      thinkingEl.style.display = 'none';
       if (thinkingText) {
         const block = document.createElement('div');
         block.className = 'thinking-block';
-        block.innerHTML = '<div class="thinking-toggle" onclick="togglePanel(this)"><span class="arrow">▶</span> 💭🫧</div>' +
+        block.innerHTML = '<div class="thinking-toggle" onclick="togglePanel(this)"><span class="arrow">▶</span> 💭 思考过程</div>' +
           '<div class="thinking-content">' + escapeHtml(thinkingText) + '</div>';
         inner.appendChild(block);
       }
@@ -317,9 +346,9 @@ function streamResponse(text, token) {
       if (toolBlocks.length > 0) {
         const block = document.createElement('div');
         block.className = 'tool-block';
-        const names = toolBlocks.map(t => t.name).join(', ');
-        const details = toolBlocks.map(t => t.name + (t.result ? ':\n' + t.result.slice(0, 200) : '')).join('\n\n');
-        block.innerHTML = '<div class="tool-toggle" onclick="togglePanel(this)"><span class="arrow">▶</span> 🔧 ' + toolBlocks.length + '个工具 (' + names.slice(0, 40) + ')</div>' +
+        const names = toolBlocks.map(t => friendlyTool(t.name)).join('、');
+        const details = toolBlocks.map(t => friendlyTool(t.name) + (t.result ? ':\n' + t.result.slice(0, 200) : '')).join('\n\n');
+        block.innerHTML = '<div class="tool-toggle" onclick="togglePanel(this)"><span class="arrow">▶</span> 🔧 ' + toolBlocks.length + '个工具（' + names.slice(0, 30) + '）</div>' +
           '<div class="tool-content">' + escapeHtml(details) + '</div>';
         inner.appendChild(block);
       }
