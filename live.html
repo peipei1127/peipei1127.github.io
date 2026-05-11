@@ -343,9 +343,19 @@ function appendMessage(msg) {
   let autoThinking = parsed.thinking || '';
 
   if (msg.direction === 'out' && !parsed.thinking) {
+    const codePatterns = /Update\(|Bash\(|Read\(|Edit\(|Write\(|git |diff |ctrl\+o|expand\)|compile\(|Searching|Brewing|Propagating|commit |push |\.html|\.py|\.js|systemctl|token|Co-Authored/i;
+    const chineseChars = (displayText.match(/[一-鿿]/g) || []).length;
+    const totalChars = displayText.replace(/\s/g, '').length;
+    const isMostlyEnglish = totalChars > 3 && chineseChars === 0;
     const startsWithMarker = displayText.trimStart().startsWith('//');
     if (startsWithMarker) {
       autoThinking = displayText.replace(/^\/\/\s*/, '');
+      displayText = '';
+    } else if (codePatterns.test(displayText)) {
+      autoThinking = displayText;
+      displayText = '';
+    } else if (isMostlyEnglish) {
+      autoThinking = displayText;
       displayText = '';
     }
   }
@@ -356,8 +366,8 @@ function appendMessage(msg) {
     const thinkText = escapeHtml(autoThinking);
     thinkHtml = '<div class="thinking-block">' +
       '<div class="thinking-toggle" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">' +
-      '<span class="arrow open">▶</span> 💭</div>' +
-      '<div class="thinking-content open">'+thinkText+'</div></div>';
+      '<span class="arrow">▶</span> 💭🫧</div>' +
+      '<div class="thinking-content">'+thinkText+'</div></div>';
   }
   const div = document.createElement('div');
   div.className = 'msg '+dir;
