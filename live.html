@@ -207,8 +207,8 @@ body{
         <button onclick="openFullscreen()">全屏 ↗</button>
       </div>
       <div style="flex:1;position:relative;background:#000;overflow:hidden" id="terminalContainer">
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a5a7a;font-size:13px" id="terminalPlaceholder">
-          点击下方「终端」加载
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a5a7a;font-size:13px;cursor:pointer" id="terminalPlaceholder" onclick="loadTerminal()">
+          点击此处加载终端
         </div>
       </div>
       <div class="input-bar">
