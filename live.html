@@ -668,7 +668,9 @@ function handleThinkingEvent(evt) {
   }
   else if (evt.type === 'turn_end' || evt.type === 'done') {
     if (liveResponseText && liveInner) {
-      // Add thinking toggle if there was thinking
+      const fullContent = liveThinkingText ? '[think]'+liveThinkingText+'[/think]'+liveResponseText : liveResponseText;
+      recentSent['out:'+fullContent.slice(0,50)] = Date.now();
+      recentSent['out:'+liveResponseText.slice(0,50)] = Date.now();
       if (liveThinkingText) {
         const block = document.createElement('div');
         block.className = 'thinking-block';
