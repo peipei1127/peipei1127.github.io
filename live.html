@@ -242,7 +242,6 @@ const SB_HEADERS = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Ty
 let currentTab = 'chat';
 let terminalLoaded = false;
 let renderedIds = new Set();
-const _blocked = [17541,17543,17544,17545,17546,17547,17548,17549]; let deletedIds = new Set([..._blocked, ...JSON.parse(localStorage.getItem("live_deleted") || "[]")]);
 let realtimeReady = false;
 let pollTimer = null;
 let sbClient = null;
@@ -345,22 +344,7 @@ function parseThinking(raw) {
 }
 
 let recentSent = {};
-function handleCtrlMsg(content) {
-  const delMatch = content.match(/^\[ctrl:delete:(\d+)\]$/);
-  if (delMatch) {
-    const tid = parseInt(delMatch[1]);
-    deletedIds.add(tid);
-    localStorage.setItem("live_deleted", JSON.stringify([...deletedIds]));
-    const el = document.querySelector("[data-msg-id=\x27"+tid+"\x27]");
-    if (el) el.remove();
-    renderedIds.delete(tid);
-    return true;
-  }
-  return false;
-}
 function appendMessage(msg) {
-  if (msg.content && msg.content.startsWith("[ctrl:")) { handleCtrlMsg(msg.content); renderedIds.add(msg.id); return; }
-  if (deletedIds.has(msg.id)) return;
   if (renderedIds.has(msg.id)) return;
   if (clearAfter && msg.created_at && new Date(msg.created_at) < new Date(clearAfter)) return;
   const raw = msg.content || '';
@@ -407,7 +391,6 @@ function appendMessage(msg) {
   }
   const div = document.createElement('div');
   div.className = 'msg '+dir;
-  div.dataset.msgId = msg.id;
   const rawImgUrl = parsed.text.replace(/^\[img\]/,'').replace(/\[\/img\]$/,'').trim();
   const isImg = /^https:\/\/.+\.(jpg|jpeg|png|gif|webp)/i.test(rawImgUrl) || /^https:\/\/.+\.(jpg|jpeg|png|gif|webp)/i.test(parsed.text);
   let bubbleContent;
