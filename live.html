@@ -320,6 +320,7 @@ async function loadMessages() {
     filtered.reverse();
     container.innerHTML = '';
     renderedIds.clear();
+    recentSent = {};
     if (filtered.length === 0 && data.length > 0 && clearAfter) {
       clearAfter = null;
       localStorage.removeItem('clearAfter');
