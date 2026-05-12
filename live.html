@@ -200,8 +200,11 @@ body{
 
     <div class="tab-pane" id="paneTerminal">
       <div class="terminal-toolbar">
-        <button onclick="reloadTerminal()">重新加载</button>
-        <button onclick="openFullscreen()">全屏打开 ↗</button>
+        <button onclick="sendCtrl('ctrl-c')" style="background:rgba(239,83,80,0.2);border-color:rgba(239,83,80,0.4);color:#ef5350">Ctrl+C</button>
+        <button onclick="sendCtrl('kill-zombies')" style="background:rgba(255,167,38,0.2);border-color:rgba(255,167,38,0.4);color:#ffa726">杀僵尸</button>
+        <button onclick="if(confirm('确定要重启长晏吗？'))sendCtrl('restart')" style="background:rgba(76,175,80,0.2);border-color:rgba(76,175,80,0.4);color:#4caf50">重启</button>
+        <button onclick="reloadTerminal()">刷新</button>
+        <button onclick="openFullscreen()">全屏 ↗</button>
       </div>
       <div style="flex:1;position:relative;background:#000;overflow:hidden" id="terminalContainer">
         <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#5a5a7a;font-size:13px" id="terminalPlaceholder">
@@ -261,6 +264,16 @@ function switchTab(tab) {
     document.getElementById('tabTerminal').classList.add('active');
     if (!terminalLoaded) loadTerminal();
   }
+}
+
+// --- Terminal control ---
+async function sendCtrl(action) {
+  const token = getToken(); if (!token) return;
+  try {
+    const r = await fetch('https://ws.changyan.chat/v2/api/ctrl',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({action})});
+    const d = await r.json();
+    alert(d.ok ? '✅ '+action+' 成功' : '❌ '+d.error);
+  } catch(e) { alert('❌ 发送失败: '+e.message); }
 }
 
 // --- Terminal ---
